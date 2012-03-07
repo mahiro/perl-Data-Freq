@@ -6,7 +6,8 @@ use warnings;
 
 =head1 NAME
 
-Data::Freq - The great new Data::Freq!
+Data::Freq - collect data, count frequency, and generate
+multi-level statistical reports
 
 =head1 VERSION
 
@@ -16,37 +17,67 @@ Version 0.01
 
 our $VERSION = '0.01';
 
-
 =head1 SYNOPSIS
 
-Quick summary of what the module does.
-
-Perhaps a little code snippet.
+Example:
 
     use Data::Freq;
 
-    my $foo = Data::Freq->new();
+    my $data = Data::Freq->new('ymd');
+    my $log = IO::File->new('access.log'); # Apache access log, e.g.
+
+    while (my $line = <$log>) {
+        $data->add($line);
+    }
+
+    $log->close();
+
+    $data->print();
+
+The above example will generate a report:
+
+    2012-01-01: 123
+    2012-01-02: 456
+    2012-01-03: 789
     ...
 
-=head1 EXPORT
+If the initialization parameters are customized:
 
-A list of functions that can be exported.  You can delete this section
-if you don't export anything, such as for a purely object-oriented module.
+    Data::Freq->new({type => 'ymd'}, {type => 'text', pos => 3});
+
+then the output will look like:
+
+    2012-01-01: 123
+      user1: 100
+      user2:  20
+      user3:   3
+    2012-01-02: 456
+      user1: 400
+      user2:  50
+      user3:   6
+    ...
 
 =head1 SUBROUTINES/METHODS
 
-=head2 function1
+=head2 new
 
 =cut
 
-sub function1 {
+sub new {
 }
 
-=head2 function2
+=head2 add
 
 =cut
 
-sub function2 {
+sub add {
+}
+
+=head2 print
+
+=cut
+
+sub print {
 }
 
 =head1 AUTHOR
@@ -59,15 +90,11 @@ Please report any bugs or feature requests to C<bug-data-freq at rt.cpan.org>, o
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Data-Freq>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
-
-
-
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
     perldoc Data::Freq
-
 
 You can also look for information at:
 
@@ -91,9 +118,7 @@ L<http://search.cpan.org/dist/Data-Freq/>
 
 =back
 
-
 =head1 ACKNOWLEDGEMENTS
-
 
 =head1 LICENSE AND COPYRIGHT
 
@@ -104,7 +129,6 @@ under the terms of either: the GNU General Public License as published
 by the Free Software Foundation; or the Artistic License.
 
 See http://dev.perl.org/licenses/ for more information.
-
 
 =cut
 
