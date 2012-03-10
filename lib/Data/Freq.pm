@@ -1,13 +1,13 @@
-package Data::Freq;
-
 use 5.006;
 use strict;
 use warnings;
 
+package Data::Freq;
+
 =head1 NAME
 
-Data::Freq - collect data, count frequency, and generate
-multi-level statistical reports
+Data::Freq - collect data, count frequency, and make up
+a multi-level counting report
 
 =head1 VERSION
 
@@ -17,53 +17,95 @@ Version 0.01
 
 our $VERSION = '0.01';
 
+use Data::Freq::Field;
+use Data::Freq::Node;
+use Data::Freq::Record;
+use Scalar::Util qw(blessed openhandle);
+
 =head1 SYNOPSIS
 
-Example:
-
     use Data::Freq;
-
-    my $data = Data::Freq->new('ymd');
-    my $log = IO::File->new('access.log'); # Apache access log, e.g.
-
-    while (my $line = <$log>) {
+    
+    my $data = Data::Freq->new();
+    
+    while (my $line = <STDIN>) {
         $data->add($line);
     }
+    
+    $data->output();
 
-    $log->close();
+=head1 EXAMPLES
 
-    $data->print();
+=head2 Analyzing an Apache access log
+
+    my $data = Data::Freq->new('date');
+    
+    while (my $line = <STDIN>) {
+        $data->add($line);
+    }
+    
+    $data->output();
 
 The above example will generate a report:
 
-    2012-01-01: 123
-    2012-01-02: 456
-    2012-01-03: 789
+    - 123: 2012-01-01
+    - 456: 2012-01-02
+    - 789: 2012-01-03
     ...
 
-If the initialization parameters are customized:
+The date/time value is automatically extracted from the log line,
+where the first date/time parsable field enclosed by a pair of brackets C<[...]>
+is considered as a date/time field. (L<Date::Parse::str2time()|Date::Parse>)
 
-    Data::Freq->new({type => 'ymd'}, {type => 'text', pos => 3});
+If the initialization parameters are customized, e.g.
 
-then the output will look like:
+    my $data = Data::Freq->new(
+        {type => 'date'},
+        {type => 'text', pos => 2}
+    );
+    # assuming the position 2 (third portion, 0-based) is the remote username
 
-    2012-01-01: 123
-      user1: 100
-      user2:  20
-      user3:   3
-    2012-01-02: 456
-      user1: 400
-      user2:  50
-      user3:   6
+then the output will look like this:
+
+    - 123: 2012-01-01
+      - 100: user1
+      -  20: user2
+      -   3: user3
+    - 456: 2012-01-02
+      - 400: user1
+      -  50: user2
+      -   6: user3
     ...
 
-=head1 SUBROUTINES/METHODS
+Below is another example along this line:
+
+    my $data = Data::Freq->new('month', 'day');
+
+with the output:
+
+    - 12300: 2012-01
+      - 123: 2012-01-01
+      - 456: 2012-01-02
+      - 789: 2012-01-03
+      ...
+    - 45600: 2012-02
+      - 456: 2012-02-01
+      - 789: 2012-02-02
+      ...
+
+=head1 METHODS
 
 =head2 new
 
 =cut
 
 sub new {
+	my $class = shift;
+	
+	return bless {
+		root   => Data::Freq::Node->new(),
+		fields => [map {Data::Freq::Field->new($_)} (@_ ? (@_) : ('text'))],
+	}, $class;
 }
 
 =head2 add
@@ -71,14 +113,122 @@ sub new {
 =cut
 
 sub add {
+	my $self = shift;
+	
+	for my $input (@_) {
+		my $record = Data::Freq::Record->new($input);
+		
+		my $node = $self->root;
+		$node->{count}++;
+		
+		for my $field (@{$self->fields}) {
+			my $value = $field->evaluate($record);
+			last unless defined $value;
+			$node = $node->add_subnode($field, $value);
+		}
+	}
+	
+	return $self;
 }
 
-=head2 print
+=head2 output
 
 =cut
 
-sub print {
+sub output {
+	my $self = shift;
+	my $out = shift;
+	
+	if (!defined $out || openhandle($out)) {
+		my $fh = $out || \*STDOUT;
+		
+		$out = sub {
+			my $node = shift;
+			
+			if ($node->depth > 0) {
+				$fh->print($node->indent, '- ', $node->format_count, ': ', $node->value, "\n");
+			}
+		};
+	}
+	
+	$self->traverse(sub {
+		my ($node, $children, $recurse, $field) = @_;
+		$out->($node, $children, $field);
+		$recurse->($_) foreach @$children;
+	});
 }
+
+=head2 traverse
+
+Usage:
+
+    $data->traverse(sub {
+        my ($node, $children, $recurse, $field) = @_;
+        
+        # Do something with $node before its child nodes
+        
+        # $children is a sorted list of child nodes, based on $field
+        for my $child (@$children) {
+        	$recurse->($child); # invoke recursion
+        }
+        
+        # Do something with $node after its child nodes
+    });
+
+Example:
+
+   var $field1 = Data::Freq::Field->new({type => 'month'});
+   var $field2 = Data::Freq::Field->new({type => 'text', pos => 2});
+   var $data = Data::Freq->new($field1, $field2);
+   ...
+
+Diagram:
+
+    <Depth: 0>       <Depth: 1>          <Depth: 2>
+    (no field)        $field1             $field2
+
+    {root (400)}--+--{2012-01 (101)}--+--{user1 (10)}
+                  |                   +--{user2 (8)}
+                  |                   +--{user3 (7)}
+                  |                   ...
+                  +--{2012-02 (102)}--+--{user3 (11)}
+                  |                   +--{user2 (9)}
+                  |                   ...
+                  ...
+
+=cut
+
+sub traverse {
+	my $self = shift;
+	my $callback = shift;
+	
+	my $fields = $self->fields;
+	my $recurse; # separate declaration for closure access
+	
+	$recurse = sub {
+		my $node = shift;
+		my $children = [];
+		my $field = undef;
+		
+		if ($field = $fields->[$node->depth]) {
+			$children = [values %{$node->children}];
+			$children = $field->sort_result($children);
+		}
+		
+		$callback->($node, $children, $recurse, $field);
+	};
+	
+	$recurse->($self->root);
+}
+
+=head2 root
+
+=head2 fields
+
+=cut
+
+sub root   {shift->{root  }}
+sub fields {shift->{fields}}
 
 =head1 AUTHOR
 
