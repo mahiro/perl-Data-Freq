@@ -57,11 +57,11 @@ The date/time value is automatically extracted from the log line,
 where the first date/time parsable field enclosed by a pair of brackets C<[...]>
 is considered as a date/time field. (L<Date::Parse::str2time()|Date::Parse>)
 
-If the initialization parameters are customized, e.g.
+If the initialization parameters for C<new()> are customized, e.g.
 
-    my $data = Data::Freq->new(
-        {type => 'date'},
-        {type => 'text', pos => 2}
+    Data::Freq->new(
+        {type => 'date'},           # field spec for level 1
+        {type => 'text', pos => 2}, # field spec for level 2
     );
     # assuming the position 2 (third portion, 0-based) is the remote username
 
@@ -79,7 +79,9 @@ then the output will look like this:
 
 Below is another example along this line:
 
-    my $data = Data::Freq->new('month', 'day');
+    Data::Freq->new('month', 'day');
+    # Level 1: 'month'
+    # Level 2: 'day'
 
 with the output:
 
@@ -96,6 +98,22 @@ with the output:
 =head1 METHODS
 
 =head2 new
+
+Usage:
+
+    Data::Freq->new($field1, $field2, ...);
+
+C<$field1>, C<$field2>, etc. are instances of L<Data::Freq::Field>,
+or any valid parameters that can be passed to L<Data::Freq::Field->new()|Data::Freq::Field/new>.
+
+The actual data to be analyzed need to be added by the L<add()|/add> method one by one.
+
+The C<Data::Freq> object maintains the counting results, based on the specified fields.
+The first field (C<$field1>) is used to group the added data into the major category.
+The next subsequent field (C<$field2>) is for the sub-category under each major group.
+Any more subsequent fields are interpreted recursively as sub-sub-category, etc.
+
+If no fields are given to the C<new()> method, one field of the C<text> type will be assumed.
 
 =cut
 
@@ -114,6 +132,18 @@ sub new {
 }
 
 =head2 add
+
+Usage:
+
+    $data->add("A record");
+    $data->add("A log line text\n");
+    $data->add(['Already', 'split', 'data']);
+    $data->add({key1 => 'data1', key2 => 'data2', ...});
+
+Add a record that increments the counting by 1.
+
+The interpretation of the input depends on the type of fields specified in the C<new()> method.
+See L<Data::Freq::Field::evaluate()|Data::Freq::Field/evaluate>.
 
 =cut
 
@@ -137,6 +167,16 @@ sub add {
 }
 
 =head2 output
+
+Usage:
+
+    $data->output();      # print results (default format)
+    $data->output(\*OUT); # open handle or IO::* instance (default format)
+    $data->output('callback_name');
+    $data->output(sub {
+        my $node = shift;
+        # $node is a Data::Freq::Node instance
+    });
 
 =cut
 
