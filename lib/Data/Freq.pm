@@ -57,6 +57,8 @@ The date/time value is automatically extracted from the log line,
 where the first date/time parsable field enclosed by a pair of brackets C<[...]>
 is considered as a date/time field. (L<Date::Parse::str2time()|Date::Parse>)
 
+=head2 Multi-level counting
+
 If the initialization parameters for C<new()> are customized, e.g.
 
     Data::Freq->new(
@@ -104,7 +106,7 @@ Usage:
     Data::Freq->new($field1, $field2, ...);
 
 C<$field1>, C<$field2>, etc. are instances of L<Data::Freq::Field>,
-or any valid parameters that can be passed to L<Data::Freq::Field->new()|Data::Freq::Field/new>.
+or any valid arguments that can be passed to L<< Data::Freq::Field->new()|Data::Freq::Field/new >>.
 
 The actual data to be analyzed need to be added by the L<add()|/add> method one by one.
 
@@ -171,12 +173,40 @@ sub add {
 Usage:
 
     $data->output();      # print results (default format)
-    $data->output(\*OUT); # open handle or IO::* instance (default format)
+    $data->output(\*OUT); # print results to open handle or IO::* instance
     $data->output('callback_name');
     $data->output(sub {
         my $node = shift;
         # $node is a Data::Freq::Node instance
     });
+
+Generate a report of the counting results.
+
+If no arguments are given, default format results are printed out to C<STDOUT>.
+Any open handle or an instance of C<IO::*> can be passed as the output destination.
+
+If the argument is a subroutine or a name of a subroutine,
+it is regarded as a callback that will be called for each node of the I<counting tree>
+in the depth-first order.
+(See L</RESULTS> for details about the I<counting tree>.)
+
+The following arguments are passed to the callback:
+
+=over 4
+
+=item * $node
+
+The current node (L<Data::Freq::Node>)
+
+=item * $children
+
+An array ref to the list of child nodes, sorted based on the field
+
+=item * $field
+
+The field (L<Data::Freq::Field>) corresponding to the level of the current node
+
+=back
 
 =cut
 
@@ -220,26 +250,33 @@ Usage:
         # Do something with $node after its child nodes
     });
 
-Example:
+Provide a way to traverse the result tree with more control than the L<output()|/output> method.
 
-   var $field1 = Data::Freq::Field->new({type => 'month'});
-   var $field2 = Data::Freq::Field->new({type => 'text', pos => 2});
-   var $data = Data::Freq->new($field1, $field2);
-   ...
+A callback must be passed as an argument, and will ba called with the following arguments:
 
-Diagram:
+=over 4
 
-    <Depth: 0>       <Depth: 1>          <Depth: 2>
-                      $field1             $field2
+=item * $node
 
-    {root (400)}--+--{2012-01 (101)}--+--{user1 (10)}
-                  |                   +--{user2 (8)}
-                  |                   +--{user3 (7)}
-                  |                   ...
-                  +--{2012-02 (102)}--+--{user3 (11)}
-                  |                   +--{user2 (9)}
-                  |                   ...
-                  ...
+The current node (L<Data::Freq::Node>)
+
+=item * $children
+
+An array ref to the list of child nodes, sorted based on the field
+
+=item * $recurse
+
+A subroutine ref, with which the resursion is invoked at a desired time
+
+=item * $field
+
+The field (L<Data::Freq::Field>) corresponding to the level of the current node
+
+=back
+
+Initially, the root node is passed as the C<$node> parameter, but the callback will
+B<not> be invoked automatically until the C<$recurse> subroutine is explicitly invoked
+for the child nodes.
 
 =cut
 
@@ -268,12 +305,52 @@ sub traverse {
 
 =head2 root
 
+Return the root node of the I<counting tree>. (See L</RESULTS> for details.)
+
+The root node is created during the L<new()|/new> method call,
+and maintains the total number of added records and a reference to its direct child nodes
+for the first field.
+
 =head2 fields
+
+Return the array ref to the list of fields (L<Data::Freq::Field>).
+
+The returned array is B<not> supposed to be modified.
 
 =cut
 
 sub root   {shift->{root  }}
 sub fields {shift->{fields}}
+
+=head1 RESULTS
+
+Once all the data have been collected with the L<add()|/add> method,
+a C<couting tree> has been constructed internally.
+
+Suppose the C<Data::Freq> instance is initialized with the two fields as below:
+
+   var $field1 = Data::Freq::Field->new({type => 'month'});
+   var $field2 = Data::Freq::Field->new({type => 'text', pos => 2});
+   var $data = Data::Freq->new($field1, $field2);
+   ...
+
+a result tree that looks like below will be constructed as each data record is added:
+
+    <Depth: 0>    |    <Depth: 1>     |   <Depth: 2>
+                  |     $field1       |    $field2
+
+    {root (400)}--+--{2012-01 (101)}--+--{user1 (10)}
+                  |                   +--{user2 (8)}
+                  |                   +--{user3 (7)}
+                  |                   ...
+                  +--{2012-02 (102)}--+--{user3 (11)}
+                  |                   +--{user2 (9)}
+                  |                   ...
+                  ...
+
+A node is represented by a pair of braces C<{...}>, and the value in the parentheses
+is the total number of occurrences of the node value, under the parent category.
+The root node maintains the total number of records that have been added, regardless of the value.
 
 =head1 AUTHOR
 

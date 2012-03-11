@@ -20,6 +20,15 @@ our @EXPORT_OK = qw(logsplit);
 
 =head2 logsplit
 
+Split a text that represents a line in a log file.
+
+A log line is typically whitespace-separated, while anything inside
+brackets C<[...]>, braces C<{...}>, parentheses C<(...)>, double quotes C<"...">,
+or single quotes C<'...'> is considered as one chunk as a whole
+even if whitespaces may be included inside.
+
+The C<logsplit> function takes care of such typical notations.
+
 =cut
 
 sub logsplit {
