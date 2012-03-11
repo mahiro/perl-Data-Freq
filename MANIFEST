@@ -9,4 +9,5 @@ README
 t/00-load.t
 t/10-field.t
 t/11-record.t
+t/12-evaluate.t
 t/20-freq.t

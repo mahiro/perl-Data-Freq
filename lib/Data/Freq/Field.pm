@@ -23,21 +23,21 @@ use POSIX qw(strftime);
 
 sub new {
 	my ($class, $input) = @_;
-	my $self;
+	my $self = bless {}, $class;
 	
 	if (!ref $input) {
-		$self = bless {$class->_expand_any($input)}, $class;
+		$self->_extract_any($input);
 	} elsif (ref $input eq 'HASH') {
-		$self = bless {
-			$class->_expand_type ($input->{type }),
-			$class->_expand_sort ($input->{sort }),
-			$class->_expand_order($input->{order}),
-			$class->_expand_pos  ($input->{pos  }),
-		}, $class;
-		
-		$self->{key} = $input->{key} if defined $input->{key};
+		for my $target (qw(type sort order pos key)) {
+			if (defined $input->{$target}) {
+				my $method = "_extract_$target";
+				$self->$method($input->{$target});
+			}
+		}
 	} elsif (ref $input eq 'ARRAY') {
-		$self = bless {map {$class->_expand_any($_)} @$input}, $class;
+		for my $item (@$input) {
+			$self->_extract_any($item);
+		}
 	} else {
 		croak "invalid field: $input";
 	}
@@ -65,21 +65,29 @@ sub new {
 
 sub evaluate {
 	my ($self, $record) = @_;
-	my $result;
+	my $result = undef;
 	
-	if (defined $self->{pos}) {
-		$result = $record->array->[$self->{pos}];
-	} elsif (defined $self->{key}) {
-		$result = $record->hash->{$self->{key}};
-	} elsif ($self->{type} eq 'date') {
-		$result = $record->date;
-	} else {
-		$result = $record->text;
-	}
-	
-	if ($self->{type} eq 'date') {
-		$result = looks_like_number($result) ? $result : str2time($result);
-		$result = strftime($self->{strftime}, localtime $result) if defined $result;
+	TRY: {
+		if (defined $self->{pos}) {
+			my $pos = $self->{pos};
+			my $array = $record->array or last TRY;
+			$result = "@$array[@$pos]";
+		} elsif (defined $self->{key}) {
+			my $key = $self->{key};
+			my $hash = $record->hash or last TRY;
+			$result = "@$hash{@$key}";
+		} elsif ($self->{type} eq 'date') {
+			$result = $record->date;
+		} else {
+			$result = $record->text;
+		}
+		
+		last TRY unless defined $result;
+		
+		if ($self->{type} eq 'date') {
+			$result = looks_like_number($result) ? $result : str2time($result);
+			$result = strftime($self->{strftime}, localtime $result) if defined $result;
+		}
 	}
 	
 	if ($self->{convert}) {
@@ -113,88 +121,120 @@ sub sort_result {
 	}
 }
 
-sub _expand_any {
-	my ($class, $input) = @_;
-	my @ret;
+sub _extract_any {
+	my ($self, $input) = @_;
 	
-	if (@ret = $class->_expand_pos($input)) {
-		return @ret;
-	} elsif (@ret = $class->_expand_sort($input)) {
-		return @ret;
-	} elsif (@ret = $class->_expand_order($input)) {
-		return @ret;
-	} elsif (@ret = $class->_expand_type($input)) {
-		return @ret;
+	for my $target (qw(pos type sort order)) {
+		my $method = "_extract_$target";
+		return $self if $self->$method($input);
 	}
 	
-	return ();
+	return undef;
 }
 
-sub _expand_type {
-	my ($class, $input) = @_;
+sub _extract_type {
+	my ($self, $input) = @_;
+	return undef if ref($input);
 	
 	if (!defined $input || $input eq '' || $input =~ /^texts?$/i) {
-		return (type => 'text');
+		$self->{type} = 'text';
+		return $self;
 	} elsif ($input =~ /^num(ber)?s?$/i) {
-		return (type => 'number');
+		$self->{type} = 'number';
+		return $self;
 	} elsif ($input =~ /\%/) {
-		return (type => 'date', strftime => $input);
+		$self->{type} = 'date';
+		$self->{strftime} = $input;
+		return $self;
 	} elsif ($input =~ /^years?$/i) {
-		return (type => 'date', strftime => '%Y');
+		$self->{type} = 'date';
+		$self->{strftime} = '%Y';
+		return $self;
 	} elsif ($input =~ /^month?s?$/i) {
-		return (type => 'date', strftime => '%Y-%m');
+		$self->{type} = 'date';
+		$self->{strftime} = '%Y-%m';
+		return $self;
 	} elsif ($input =~ /^(date|day)s?$/i) {
-		return (type => 'date', strftime => '%F');
+		$self->{type} = 'date';
+		$self->{strftime} = '%F';
+		return $self;
 	} elsif ($input =~ /^hours?$/i) {
-		return (type => 'date', strftime => '%F %H');
+		$self->{type} = 'date';
+		$self->{strftime} = '%F %H';
+		return $self;
 	} elsif ($input =~ /^minutes?$/i) {
-		return (type => 'date', strftime => '%F %H:%M');
+		$self->{type} = 'date';
+		$self->{strftime} = '%F %H:%M';
+		return $self;
 	} elsif ($input =~ /^(seconds?|time)?$/i) {
-		return (type => 'date', strftime => '%F %T');
+		$self->{type} = 'date';
+		$self->{strftime} = '%F %T';
+		return $self;
 	}
 	
-	return ();
+	return undef;
 }
 
-sub _expand_sort {
-	my ($class, $input) = @_;
-	return () if !defined $input || $input eq '';
+sub _extract_sort {
+	my ($self, $input) = @_;
+	return undef if !defined $input || ref($input) || $input eq '';
 	
 	if ($input =~ /^values?$/i) {
-		return (sort => 'value');
+		$self->{sort} = 'value';
+		return $self;
 	} elsif ($input =~ /^counts?$/i) {
-		return (sort => 'count');
+		$self->{sort} = 'count';
+		return $self;
 	} elsif ($input =~ /^(first|occur(rence)?s?)$/i) {
-		return (sort => 'first');
+		$self->{sort} = 'first';
+		return $self;
 	} elsif ($input =~ /^last$/i) {
-		return (sort => 'last');
+		$self->{sort} = 'last';
+		return $self;
 	}
 	
-	return ();
+	return undef;
 }
 
-sub _expand_order {
-	my ($class, $input) = @_;
-	return () if !defined $input || $input eq '';
+sub _extract_order {
+	my ($self, $input) = @_;
+	return undef if !defined $input || ref($input) || $input eq '';
 	
 	if ($input =~ /^asc/i) {
-		return (order => 'asc');
+		$self->{order} = 'asc';
+		return $self;
 	} elsif ($input =~ /^desc$/i) {
-		return (order => 'desc');
+		$self->{order} = 'desc';
+		return $self;
 	}
 	
-	return ();
+	return undef;
 }
 
-sub _expand_pos {
-	my ($class, $input) = @_;
-	return () if !defined $input || $input eq '';
+sub _extract_pos {
+	my ($self, $input) = @_;
+	return undef if !defined $input;
 	
-	if ($input =~ /^-?\d+$/) {
-		return (pos => $input);
+	if (ref $input eq 'ARRAY') {
+		$self->{pos} ||= [];
+		push @{$self->{pos}}, @$input;
+		return $self;
+	} elsif ($input =~ /^-?\d+$/) {
+		$self->{pos} ||= [];
+		push @{$self->{pos}}, $input;
+		return $self;
 	}
 	
-	return ();
+	return undef;
+}
+
+sub _extract_key {
+	my ($self, $input) = @_;
+	return undef if !defined $input;
+	
+	$self->{key} ||= [];
+	push @{$self->{key}}, (ref($input) eq 'ARRAY' ? @$input : ($input));
+	return $self;
 }
 
 1;

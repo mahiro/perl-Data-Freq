@@ -3,10 +3,13 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More tests => 5;
 
 use Data::Freq::Record qw(logsplit);
 use POSIX qw(strftime);
+
+local $ENV{TZ} = 'GMT'; # make test results independent of localtime
+local $" = ' '; # list separator (for "@array" notation in $record->date)
 
 subtest logsplit => sub {
 	plan tests => 6;
@@ -34,7 +37,43 @@ subtest text => sub {
 	
 	is $record->text, 'test';
 	is_deeply $record->array, ['test'];
-	eval {$record->hash}; ok $@;
-	
+	is $record->hash, undef;
 };
 
+subtest array => sub {
+	plan tests => 3;
+	
+	my $record = Data::Freq::Record->new(['foo', 'bar', 'baz']);
+	
+	is $record->text, 'foo';
+	is_deeply $record->array, ['foo', 'bar', 'baz'];
+	is $record->hash, undef;
+};
+
+subtest hash => sub {
+	plan tests => 3;
+	
+	my $record = Data::Freq::Record->new({foo => 123, bar => 456, baz => 789});
+	
+	is $record->text, undef;
+	is $record->array, undef;
+	is_deeply $record->hash, {foo => 123, bar => 456, baz => 789};
+};
+
+subtest date => sub {
+	plan tests => 3;
+	
+	my $record;
+	
+	# Apache
+	$record = Data::Freq::Record->new(qq(12.34.56.78 - user1 [01/Jan/2012:01:02:03 +0000] "GET / HTTP/1.1" 200 44\n));
+	is $record->date, 1325379723;
+	
+	# Custom
+	$record = Data::Freq::Record->new(qq([2012-01-01 01:02:03] DEBUG - Test debug message\n));
+	is $record->date, 1325379723;
+	
+	# Log4J (or Log4perl etc) with %d{dd MMM yyyy HH:mm:ss,SSS}
+	$record = Data::Freq::Record->new(qq(01 Jan 2012 01:02:03,456 INFO  [main] foo.bar.Baz:123 - test test test\n));
+	is $record->date([0..3]), 1325379723.456;
+};

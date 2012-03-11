@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More tests => 8;
 
 use Data::Freq::Field;
 
@@ -46,14 +46,14 @@ subtest simple_type => sub {
 subtest simple_pos => sub {
 	plan tests => 7;
 	
-	is_deeply(Data::Freq::Field->new(  0), {type => 'text', sort => 'count', order => 'desc', pos => 0});
-	is_deeply(Data::Freq::Field->new(  1), {type => 'text', sort => 'count', order => 'desc', pos => 1});
-	is_deeply(Data::Freq::Field->new(  2), {type => 'text', sort => 'count', order => 'desc', pos => 2});
-	is_deeply(Data::Freq::Field->new( 10), {type => 'text', sort => 'count', order => 'desc', pos => 10});
+	is_deeply(Data::Freq::Field->new(  0), {type => 'text', sort => 'count', order => 'desc', pos => [0]});
+	is_deeply(Data::Freq::Field->new(  1), {type => 'text', sort => 'count', order => 'desc', pos => [1]});
+	is_deeply(Data::Freq::Field->new(  2), {type => 'text', sort => 'count', order => 'desc', pos => [2]});
+	is_deeply(Data::Freq::Field->new( 10), {type => 'text', sort => 'count', order => 'desc', pos => [10]});
 	
-	is_deeply(Data::Freq::Field->new( -1), {type => 'text', sort => 'count', order => 'desc', pos => -1});
-	is_deeply(Data::Freq::Field->new( -2), {type => 'text', sort => 'count', order => 'desc', pos => -2});
-	is_deeply(Data::Freq::Field->new(-10), {type => 'text', sort => 'count', order => 'desc', pos => -10});
+	is_deeply(Data::Freq::Field->new( -1), {type => 'text', sort => 'count', order => 'desc', pos => [-1]});
+	is_deeply(Data::Freq::Field->new( -2), {type => 'text', sort => 'count', order => 'desc', pos => [-2]});
+	is_deeply(Data::Freq::Field->new(-10), {type => 'text', sort => 'count', order => 'desc', pos => [-10]});
 };
 
 subtest simple_sort => sub {
@@ -85,9 +85,9 @@ subtest hash_1 => sub {
 	is_deeply(Data::Freq::Field->new({type => 'date'  }), {type => 'date', sort => 'value', order => 'asc', strftime => '%F'});
 	is_deeply(Data::Freq::Field->new({type => 'month' }), {type => 'date', sort => 'value', order => 'asc', strftime => '%Y-%m'});
 	
-	is_deeply(Data::Freq::Field->new({pos => 0}), {type => 'text', sort => 'count', order => 'desc', pos => 0});
-	is_deeply(Data::Freq::Field->new({pos => 1}), {type => 'text', sort => 'count', order => 'desc', pos => 1});
-	is_deeply(Data::Freq::Field->new({key => 'foo'}), {type => 'text', sort => 'count', order => 'desc', key => 'foo'});
+	is_deeply(Data::Freq::Field->new({pos => 0}), {type => 'text', sort => 'count', order => 'desc', pos => [0]});
+	is_deeply(Data::Freq::Field->new({pos => 1}), {type => 'text', sort => 'count', order => 'desc', pos => [1]});
+	is_deeply(Data::Freq::Field->new({key => 'foo'}), {type => 'text', sort => 'count', order => 'desc', key => ['foo']});
 	
 	is_deeply(Data::Freq::Field->new({sort => 'count' }), {type => 'text', sort => 'count', order => 'desc'});
 	is_deeply(Data::Freq::Field->new({sort => 'value' }), {type => 'text', sort => 'value', order => 'asc'});
@@ -96,7 +96,7 @@ subtest hash_1 => sub {
 };
 
 subtest hash_2 => sub {
-	plan tests => 29;
+	plan tests => 30;
 	
 	is_deeply(Data::Freq::Field->new({type => 'text'  , sort => 'count'}), {type => 'text', sort => 'count', order => 'desc'});
 	is_deeply(Data::Freq::Field->new({type => 'text'  , sort => 'value'}), {type => 'text', sort => 'value', order => 'asc'});
@@ -127,7 +127,19 @@ subtest hash_2 => sub {
 	is_deeply(Data::Freq::Field->new({type => 'date'  , order => 'asc' }), {type => 'date', sort => 'value', order => 'asc', strftime => '%F'});
 	is_deeply(Data::Freq::Field->new({type => 'date'  , order => 'desc'}), {type => 'date', sort => 'value', order => 'desc', strftime => '%F'});
 	
-	is_deeply(Data::Freq::Field->new({type => 'year' , pos =>   2  }), {type => 'date', sort => 'value', order => 'asc', pos => 2, strftime => '%Y'});
-	is_deeply(Data::Freq::Field->new({sort => 'first', key => 'bar'}), {type => 'text', sort => 'first', order => 'asc', key => 'bar'});
-	is_deeply(Data::Freq::Field->new({pos  =>    3   , key => 'baz'}), {type => 'text', sort => 'count', order => 'desc', pos => 3, key => 'baz'});
-}
+	is_deeply(Data::Freq::Field->new({type => 'year' , pos =>   2  }), {type => 'date', sort => 'value', order => 'asc', pos => [2], strftime => '%Y'});
+	is_deeply(Data::Freq::Field->new({sort => 'first', key => 'bar'}), {type => 'text', sort => 'first', order => 'asc', key => ['bar']});
+	is_deeply(Data::Freq::Field->new({pos  =>    3   , key => 'baz'}), {type => 'text', sort => 'count', order => 'desc', pos => [3], key => ['baz']});
+	is_deeply(Data::Freq::Field->new({pos  => [0..3] , key => [qw(a b c)]}), {type => 'text', sort => 'count', order => 'desc', pos => [0..3], key => [qw(a b c)]});
+};
+
+subtest array => sub {
+	plan tests => 5;
+	
+	is_deeply(Data::Freq::Field->new(['text', 'value', 'desc']), {type => 'text', sort => 'value', order => 'desc'});
+	is_deeply(Data::Freq::Field->new(['month', 'count', 'asc']), {type => 'date', sort => 'count', order => 'asc', strftime => '%Y-%m'});
+	
+	is_deeply(Data::Freq::Field->new([1, 0, 3]), {type => 'text', sort => 'count', order => 'desc', pos => [1, 0, 3]});
+	is_deeply(Data::Freq::Field->new([1, 0, [3, 2]]), {type => 'text', sort => 'count', order => 'desc', pos => [1, 0, 3, 2]});
+	is_deeply(Data::Freq::Field->new(['number', 1, 0, [3, 2]]), {type => 'number', sort => 'value', order => 'asc', pos => [1, 0, 3, 2]});
+};

@@ -56,7 +56,10 @@ sub new {
 		date_tried => 0,
 	}, $class;
 	
-	if (!ref $input) {
+	if (!defined $input) {
+		$self->{text} = '';
+		$self->{init} = 'text';
+	} elsif (!ref $input) {
 		$self->{text}  = $input;
 		$self->{init}  = 'text';
 	} elsif (ref $input eq 'ARRAY') {
@@ -85,7 +88,7 @@ sub text {
 		return $self->{text};
 	}
 	
-	croak "cannot retrieve a text value";
+	return undef;
 }
 
 =head2 array
@@ -101,7 +104,7 @@ sub array {
 		return $self->{array};
 	}
 	
-	croak "cannot retrieve an array value";
+	return undef;
 }
 
 =head2 hash
@@ -111,7 +114,7 @@ sub array {
 sub hash {
 	my $self = shift;
 	return $self->{hash} if defined $self->{hash};
-	croak "cannot retrieve a hash value";
+	return undef;
 }
 
 =head2 date
@@ -124,33 +127,34 @@ sub date {
 	
 	$self->{date_tried} = 1;
 	
-	my $array = eval {$self->array};
-	croak $@ if $@;
+	my $array = $self->array or return undef;
 	
-	my $first = 1;
-	
-	for my $item (@$array) {
-		my $str;
-		
-		if ($item =~ /^ \[ (.*) \] $/x) {
-			$str = $1;
-		} elsif ($first) {
-			if ($item =~ /^ ["'\{\(] (.*) [\)\}'"] $/x) {
-				$str = $1;
-			} else {
-				$str = $item;
-			}
-		}
-		
-		if (defined $str) {
-			my $t = str2time($str);
-			return $self->{date} = $t if defined $t;
-		}
-		
-		$first = 0;
+	if (my $pos = shift) {
+		my $str = "@$array[@$pos]";
+		$str =~ s/^ \[ (.*) \] $/$1/x;
+		return $self->{date} = $str if $str !~ /\D/;
+		return $self->{date} = _str2time($str);
 	}
 	
-	return $self->{date};
+	for my $item (@$array) {
+		if ($item =~ /^ \[ (.*) \] $/x) {
+			my $t = _str2time($1);
+			return $self->{date} = $t if defined $t;
+		}
+	}
+	
+	return undef;
+}
+
+sub _str2time {
+	my $str = shift;
+	
+	my $msec = $1 if $str =~ s/[,\.](\d+)$//;
+	my $t = str2time($str);
+	return undef unless defined $t;
+	
+	$t += "0.$msec" if $msec;
+	return $t;
 }
 
 1;

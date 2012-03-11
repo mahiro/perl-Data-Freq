@@ -102,9 +102,14 @@ with the output:
 sub new {
 	my $class = shift;
 	
+	my $fields = [map {
+		blessed($_) && $_->isa('Data::Freq::Field') ?
+				$_ : Data::Freq::Field->new($_)
+	} (@_ ? (@_) : ('text'))];
+	
 	return bless {
 		root   => Data::Freq::Node->new(),
-		fields => [map {Data::Freq::Field->new($_)} (@_ ? (@_) : ('text'))],
+		fields => $fields,
 	}, $class;
 }
 
@@ -185,7 +190,7 @@ Example:
 Diagram:
 
     <Depth: 0>       <Depth: 1>          <Depth: 2>
-    (no field)        $field1             $field2
+                      $field1             $field2
 
     {root (400)}--+--{2012-01 (101)}--+--{user1 (10)}
                   |                   +--{user2 (8)}
