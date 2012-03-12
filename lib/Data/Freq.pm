@@ -6,7 +6,7 @@ package Data::Freq;
 
 =head1 NAME
 
-Data::Freq - collect data, count frequency, and make up
+Data::Freq - collects data, counts frequency, and makes up
 a multi-level counting report
 
 =head1 VERSION
@@ -20,6 +20,7 @@ our $VERSION = '0.01';
 use Data::Freq::Field;
 use Data::Freq::Node;
 use Data::Freq::Record;
+use List::Util qw(max);
 use Scalar::Util qw(blessed openhandle);
 
 =head1 SYNOPSIS
@@ -46,56 +47,64 @@ use Scalar::Util qw(blessed openhandle);
     
     $data->output();
 
-The above example will generate a report:
+The above example will generate a report as below:
 
-    - 123: 2012-01-01
-    - 456: 2012-01-02
-    - 789: 2012-01-03
+    123: 2012-01-01
+    456: 2012-01-02
+    789: 2012-01-03
     ...
+
+where the left column shows the number of occurrences of each date.
 
 The date/time value is automatically extracted from the log line,
 where the first date/time parsable field enclosed by a pair of brackets C<[...]>
-is considered as a date/time field. (L<Date::Parse::str2time()|Date::Parse>)
+is considered as a date/time field.
+
+The date/time string is parsed by the L<Date::Parse::str2time()|Date::Parse/str2time> function.
+See also L<Data::Freq::Record::logsplit()|Data::Freq::Record/logsplit>.
 
 =head2 Multi-level counting
 
-If the initialization parameters for C<new()> are customized, e.g.
+If the initialization parameters for L<new()|/new> are customized, e.g.
 
     Data::Freq->new(
         {type => 'date'},           # field spec for level 1
         {type => 'text', pos => 2}, # field spec for level 2
     );
-    # assuming the position 2 (third portion, 0-based) is the remote username
+    # assuming the position 2 (third portion, 0-based)
+    # is the remote username
 
 then the output will look like this:
 
-    - 123: 2012-01-01
-      - 100: user1
-      -  20: user2
-      -   3: user3
-    - 456: 2012-01-02
-      - 400: user1
-      -  50: user2
-      -   6: user3
+    123: 2012-01-01
+      100: user1
+       20: user2
+        3: user3
+    456: 2012-01-02
+      400: user1
+       50: user2
+        6: user3
     ...
+
+See L<Data::Freq::Field> for details about the field specification.
 
 Below is another example along this line:
 
     Data::Freq->new('month', 'day');
-    # Level 1: 'month'
-    # Level 2: 'day'
+        # Level 1: 'month'
+        # Level 2: 'day'
 
 with the output:
 
-    - 12300: 2012-01
-      - 123: 2012-01-01
-      - 456: 2012-01-02
-      - 789: 2012-01-03
-      ...
-    - 45600: 2012-02
-      - 456: 2012-02-01
-      - 789: 2012-02-02
-      ...
+    12300: 2012-01
+        123: 2012-01-01
+        456: 2012-01-02
+        789: 2012-01-03
+        ...
+    45600: 2012-02
+        456: 2012-02-01
+        789: 2012-02-02
+        ...
 
 =head1 METHODS
 
@@ -105,7 +114,9 @@ Usage:
 
     Data::Freq->new($field1, $field2, ...);
 
-C<$field1>, C<$field2>, etc. are instances of L<Data::Freq::Field>,
+Constructs a C<Data::Freq> instance.
+
+The arguments C<$field1>, C<$field2>, etc. are instances of L<Data::Freq::Field>,
 or any valid arguments that can be passed to L<< Data::Freq::Field->new()|Data::Freq::Field/new >>.
 
 The actual data to be analyzed need to be added by the L<add()|/add> method one by one.
@@ -142,7 +153,7 @@ Usage:
     $data->add(['Already', 'split', 'data']);
     $data->add({key1 => 'data1', key2 => 'data2', ...});
 
-Add a record that increments the counting by 1.
+Adds a record that increments the counting by 1.
 
 The interpretation of the input depends on the type of fields specified in the C<new()> method.
 See L<Data::Freq::Field::evaluate()|Data::Freq::Field/evaluate>.
@@ -172,15 +183,31 @@ sub add {
 
 Usage:
 
+	# I/O
     $data->output();      # print results (default format)
-    $data->output(\*OUT); # print results to open handle or IO::* instance
+    $data->output(\*OUT); # print results to open handle
+    $data->output($io);   # print results to IO::* object
+    
+    # Callback
     $data->output('callback_name');
     $data->output(sub {
         my $node = shift;
         # $node is a Data::Freq::Node instance
     });
+    
+    # Options
+    $data->output({
+        indent    => '  ', # repeats depth times at each node
+        prefix    => ''  , # prepended to each record, after the indent
+        leftalign => 0   , # true or false
+        separator => ': ', # separates the count and the value
+    });
+    
+    # Combination with options
+    $data->output($open_fh , {opt => ...});
+    $data->output(sub {...}, {opt => ...});
 
-Generate a report of the counting results.
+Generates a report of the counting results.
 
 If no arguments are given, default format results are printed out to C<STDOUT>.
 Any open handle or an instance of C<IO::*> can be passed as the output destination.
@@ -202,33 +229,58 @@ The current node (L<Data::Freq::Node>)
 
 An array ref to the list of child nodes, sorted based on the field
 
-=item * $field
-
-The field (L<Data::Freq::Field>) corresponding to the level of the current node
-
 =back
 
 =cut
 
 sub output {
 	my $self = shift;
-	my $out = shift;
+	my ($fh, $callback, $opt);
 	
-	if (!defined $out || openhandle($out)) {
-		my $fh = $out || \*STDOUT;
+	for (@_) {
+		if (openhandle($_)) {
+			$fh = $_;
+		} elsif (ref $_ eq 'HASH') {
+			$opt = $_;
+		} else {
+			$callback = $_;
+		}
+	}
+	
+	$opt ||= {};
+	
+	my $indent    = defined $opt->{indent}    ? $opt->{indent}    : '  ';
+	my $prefix    = defined $opt->{prefix}    ? $opt->{prefix}    : '';
+	my $leftalign = defined $opt->{leftalign} ? $opt->{leftalign} : 0;
+	my $separator = defined $opt->{separator} ? $opt->{separator} : ': ';
+	
+	if (!$callback) {
+		my $maxlen = length($self->root->max);
+		$fh ||= \*STDOUT;
 		
-		$out = sub {
+		$callback = sub {
 			my $node = shift;
 			
 			if ($node->depth > 0) {
-				$fh->print($node->indent, '- ', $node->format_count, ': ', $node->value, "\n");
+				$fh->print($indent x ($node->depth - 1));
+				$fh->print($prefix);
+				
+				if ($leftalign) {
+					$fh->print($node->count);
+				} else {
+					$fh->printf('%'.$maxlen.'d', $node->count);
+				}
+				
+				$fh->print($separator);
+				$fh->print($node->value);
+				$fh->print("\n");
 			}
 		};
 	}
 	
 	$self->traverse(sub {
-		my ($node, $children, $recurse, $field) = @_;
-		$out->($node, $children, $field);
+		my ($node, $children, $recurse) = @_;
+		$callback->($node, $children);
 		$recurse->($_) foreach @$children;
 	});
 }
@@ -238,7 +290,7 @@ sub output {
 Usage:
 
     $data->traverse(sub {
-        my ($node, $children, $recurse, $field) = @_;
+        my ($node, $children, $recurse) = @_;
         
         # Do something with $node before its child nodes
         
@@ -268,10 +320,6 @@ An array ref to the list of child nodes, sorted based on the field
 
 A subroutine ref, with which the resursion is invoked at a desired time
 
-=item * $field
-
-The field (L<Data::Freq::Field>) corresponding to the level of the current node
-
 =back
 
 Initially, the root node is passed as the C<$node> parameter, but the callback will
@@ -290,14 +338,13 @@ sub traverse {
 	$recurse = sub {
 		my $node = shift;
 		my $children = [];
-		my $field = undef;
 		
-		if ($field = $fields->[$node->depth]) {
+		if (my $field = $fields->[$node->depth]) {
 			$children = [values %{$node->children}];
 			$children = $field->sort_result($children);
 		}
 		
-		$callback->($node, $children, $recurse, $field);
+		$callback->($node, $children, $recurse);
 	};
 	
 	$recurse->($self->root);
@@ -336,21 +383,21 @@ Suppose the C<Data::Freq> instance is initialized with the two fields as below:
 
 a result tree that looks like below will be constructed as each data record is added:
 
-    <Depth: 0>    |    <Depth: 1>     |   <Depth: 2>
-                  |     $field1       |    $field2
+    <Depth: 0>        <Depth: 1>        <Depth: 2>
+                       $field1           $field2
 
-    {root (400)}--+--{2012-01 (101)}--+--{user1 (10)}
-                  |                   +--{user2 (8)}
-                  |                   +--{user3 (7)}
-                  |                   ...
-                  +--{2012-02 (102)}--+--{user3 (11)}
-                  |                   +--{user2 (9)}
-                  |                   ...
-                  ...
+    {400: root}--+--{101: 2012-01}--+--{10: user1}
+                 |                  +--{ 8: user2}
+                 |                  +--{ 7: user3}
+                 |                  ...
+                 +--{102: 2012-02}--+--{11: user3}
+                 |                  +--{ 9: user2}
+                 |                  ...
+                 ...
 
-A node is represented by a pair of braces C<{...}>, and the value in the parentheses
+A node is represented by a pair of braces C<{...}>, and each integer value
 is the total number of occurrences of the node value, under the parent category.
-The root node maintains the total number of records that have been added, regardless of the value.
+The root node maintains the total number of records that have been added.
 
 =head1 AUTHOR
 

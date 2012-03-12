@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 4;
+use Test::More tests => 6;
 
 use Data::Freq;
 
@@ -114,3 +114,103 @@ subtest date => sub {
 		}
 	}
 };
+
+SKIP: {
+	eval {require IO::String} or skip 'IO::String is not installed', 2;
+	
+	subtest output_1 => sub {
+		plan tests => 4;
+		
+		my $data = Data::Freq->new({type => 'month'});
+		
+		$data->add("[2012-01-01 00:00:00] abc\n") foreach 1..10;
+		$data->add("[2012-01-02 01:00:00] def\n") foreach 1..5;
+		$data->add("[2012-01-03 02:00:00] ghi\n") foreach 1..45;
+		$data->add("[2012-02-04 03:00:00] abc\n") foreach 1..1;
+		$data->add("[2012-02-05 04:00:00] ghi\n") foreach 1..1;
+		$data->add("[2012-02-06 05:00:00] jkl\n") foreach 1..2;
+		$data->add("[2012-02-07 06:00:00] mno\n") foreach 1..1;
+		$data->add("[2012-03-08 07:00:00] abc\n") foreach 1..2;
+		$data->add("[2012-03-09 08:00:00] def\n") foreach 1..115;
+		$data->add("[2012-03-10 09:00:00] ghi\n") foreach 1..3;
+		
+		my $result;
+		$data->output(IO::String->new($result));
+		my @chunks = split /\n/, $result;
+		
+		my $i = 0;
+		is $chunks[$i++], ' 60: 2012-01';
+		is $chunks[$i++], '  5: 2012-02';
+		is $chunks[$i++], '120: 2012-03';
+		is scalar(@chunks), $i;
+	};
+	
+	subtest output_2 => sub {
+		plan tests => 2;
+		
+		my $data = Data::Freq->new({type => 'month'}, {pos => 1});
+		
+		$data->add("[2012-01-01 00:00:00] abc\n") foreach 1..10;
+		$data->add("[2012-01-02 01:00:00] def\n") foreach 1..5;
+		$data->add("[2012-01-03 02:00:00] ghi\n") foreach 1..45;
+		$data->add("[2012-02-04 03:00:00] abc\n") foreach 1..1;
+		$data->add("[2012-02-05 04:00:00] ghi\n") foreach 1..1;
+		$data->add("[2012-02-06 05:00:00] jkl\n") foreach 1..2;
+		$data->add("[2012-02-07 06:00:00] mno\n") foreach 1..1;
+		$data->add("[2012-03-08 07:00:00] abc\n") foreach 1..2;
+		$data->add("[2012-03-09 08:00:00] def\n") foreach 1..115;
+		$data->add("[2012-03-10 09:00:00] ghi\n") foreach 1..3;
+		
+		subtest no_opts => sub {
+			plan tests => 14;
+			
+			my $result;
+			$data->output(IO::String->new($result));
+			my @chunks = split /\n/, $result;
+			
+			my $i = 0;
+			is $chunks[$i++], ' 60: 2012-01';
+			is $chunks[$i++], '   45: ghi';
+			is $chunks[$i++], '   10: abc';
+			is $chunks[$i++], '    5: def';
+			is $chunks[$i++], '  5: 2012-02';
+			is $chunks[$i++], '    2: jkl';
+			is $chunks[$i++], '    1: abc';
+			is $chunks[$i++], '    1: ghi';
+			is $chunks[$i++], '    1: mno';
+			is $chunks[$i++], '120: 2012-03';
+			is $chunks[$i++], '  115: def';
+			is $chunks[$i++], '    3: ghi';
+			is $chunks[$i++], '    2: abc';
+			is scalar(@chunks), $i;
+		};
+		
+		subtest with_opts => sub {
+			plan tests => 14;
+			
+			my $result;
+			
+			$data->output(IO::String->new($result), {
+				leftalign => 1, indent => '    ', prefix => '- ', separator => ' => ',
+			});
+			
+			my @chunks = split /\n/, $result;
+			
+			my $i = 0;
+			is $chunks[$i++], '- 60 => 2012-01';
+			is $chunks[$i++], '    - 45 => ghi';
+			is $chunks[$i++], '    - 10 => abc';
+			is $chunks[$i++], '    - 5 => def';
+			is $chunks[$i++], '- 5 => 2012-02';
+			is $chunks[$i++], '    - 2 => jkl';
+			is $chunks[$i++], '    - 1 => abc';
+			is $chunks[$i++], '    - 1 => ghi';
+			is $chunks[$i++], '    - 1 => mno';
+			is $chunks[$i++], '- 120 => 2012-03';
+			is $chunks[$i++], '    - 115 => def';
+			is $chunks[$i++], '    - 3 => ghi';
+			is $chunks[$i++], '    - 2 => abc';
+			is scalar(@chunks), $i;
+		};
+	};
+}
