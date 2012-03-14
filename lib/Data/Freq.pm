@@ -206,9 +206,10 @@ as the default output lines).
 =item * A hash ref of options to control output format
 
     $data->output({
+        total     => 0   , # also prints total (root node)
         indent    => '  ', # repeats (depth - 1) times
         prefix    => ''  , # prepended before the count
-        nopadding => 0   , # (see below)
+        nopadding => 0   , # disables padding for the count
         separator => ': ', # separates the count and the value
     });
 
@@ -217,6 +218,10 @@ as the default output lines).
     $data->output(\*STDERR, {indent => "\t"});
 
 =back
+
+The output does not include the grand total by default.
+If the C<total> option is set to a true value, the total count will be printed
+as the first line (level 0), and all the subsequent levels will be shifted to the right.
 
 The default output format has apparent ambiguity between the indent
 and the padding for alignment.
@@ -407,9 +412,10 @@ Usage:
     
     # Options
     $data->output({
-        indent    => '  ', # repeats depth times at each node
-        prefix    => ''  , # prepended to each record, after the indent
-        nopadding => 0   , # true or false
+        total     => 0   , # also prints total (root node)
+        indent    => '  ', # repeats (depth - 1) times
+        prefix    => ''  , # prepended before the count
+        nopadding => 0   , # disables padding for the count
         separator => ': ', # separates the count and the value
     });
     
@@ -461,20 +467,21 @@ sub output {
 	
 	$opt ||= {};
 	
-	my $indent    = defined $opt->{indent}    ? $opt->{indent}    : '  ';
-	my $prefix    = defined $opt->{prefix}    ? $opt->{prefix}    : '';
-	my $nopadding = defined $opt->{nopadding} ? $opt->{nopadding} : 0;
-	my $separator = defined $opt->{separator} ? $opt->{separator} : ': ';
+	my $with_total = $opt->{total} ? 1 : 0;
+	my $indent     = defined $opt->{indent}    ? $opt->{indent}    : '  ';
+	my $prefix     = defined $opt->{prefix}    ? $opt->{prefix}    : '';
+	my $nopadding  = defined $opt->{nopadding} ? $opt->{nopadding} : 0;
+	my $separator  = defined $opt->{separator} ? $opt->{separator} : ': ';
 	
 	if (!$callback) {
-		my $maxlen = length($self->root->max);
+		my $maxlen = $with_total ? length($self->root->count) : length($self->root->max);
 		$fh ||= \*STDOUT;
 		
 		$callback = sub {
 			my $node = shift;
 			
-			if ($node->depth > 0) {
-				print $fh $indent x ($node->depth - 1);
+			if ($with_total || $node->depth > 0) {
+				print $fh $indent x ($node->depth - ($with_total ? 0 : 1));
 				print $fh $prefix;
 				
 				if ($nopadding) {
