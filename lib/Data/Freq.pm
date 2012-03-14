@@ -206,11 +206,12 @@ as the default output lines).
 =item * A hash ref of options to control output format
 
     $data->output({
-        total     => 0   , # also prints total (root node)
-        indent    => '  ', # repeats (depth - 1) times
-        prefix    => ''  , # prepended before the count
-        nopadding => 0   , # disables padding for the count
-        separator => ': ', # separates the count and the value
+        with_total  => 0   , # also prints total (root node)
+        value_first => 0   , # prints values before counts
+        indent      => '  ', # repeats (depth - 1) times
+        separator   => ': ', # separates the count and the value
+        prefix      => ''  , # prepended before the count
+        no_padding  => 0   , # disables padding for the count
     });
 
 =item * The format option can be specified together with a file handle.
@@ -220,13 +221,29 @@ as the default output lines).
 =back
 
 The output does not include the grand total by default.
-If the C<total> option is set to a true value, the total count will be printed
+If the C<with_total> option is set to a true value, the total count will be printed
 as the first line (level 0), and all the subsequent levels will be shifted to the right.
+
+The C<value_first> option flips the order of the count and the value in each line. E.g.
+
+    2012-01: 12300
+      2012-01-01: 123
+      2012-01-02: 456
+      2012-01-03: 789
+      ...
+    2012-02: 45600
+      2012-02-01: 456
+      2012-02-02: 789
+      ...
+
+The indent unit (repeated appropriate times) and the separator
+(between the count and the value) can be customized with the respective options,
+C<indent> and C<separator>.
 
 The default output format has apparent ambiguity between the indent
 and the padding for alignment.
 
-For example, consider an output below:
+For example, consider the output below:
 
     12000: Level 1
        9000: Level 2
@@ -249,10 +266,10 @@ The indent depth will be clearer if a C<prefix> is added:
       *     5: Level 2
     ...
 
-Alternatively, the C<nopadding> option can be set to a true value
+Alternatively, the C<no_padding> option can be set to a true value
 to disable the left padding.
 
-    $data->output({nopadding => 1});
+    $data->output({no_padding => 1});
     
     12000: Level 1
       9000: Level 2
@@ -412,11 +429,12 @@ Usage:
     
     # Options
     $data->output({
-        total     => 0   , # also prints total (root node)
-        indent    => '  ', # repeats (depth - 1) times
-        prefix    => ''  , # prepended before the count
-        nopadding => 0   , # disables padding for the count
-        separator => ': ', # separates the count and the value
+        with_total  => 0   , # also prints total (root node)
+        value_first => 0   , # prints values before counts
+        indent      => '  ', # repeats (depth - 1) times
+        separator   => ': ', # separates the count and the value
+        prefix      => ''  , # prepended before the count
+        no_padding  => 0   , # disables padding for the count
     });
     
     # Combination
@@ -467,11 +485,12 @@ sub output {
 	
 	$opt ||= {};
 	
-	my $with_total = $opt->{total} ? 1 : 0;
-	my $indent     = defined $opt->{indent}    ? $opt->{indent}    : '  ';
-	my $prefix     = defined $opt->{prefix}    ? $opt->{prefix}    : '';
-	my $nopadding  = defined $opt->{nopadding} ? $opt->{nopadding} : 0;
-	my $separator  = defined $opt->{separator} ? $opt->{separator} : ': ';
+	my $indent      = defined $opt->{indent}    ? $opt->{indent}    : '  ';
+	my $prefix      = defined $opt->{prefix}    ? $opt->{prefix}    : '';
+	my $separator   = defined $opt->{separator} ? $opt->{separator} : ': ';
+	my $with_total  = $opt->{with_total}  ? 1 : 0;
+	my $no_padding  = $opt->{no_padding}  ? 1 : 0;
+	my $value_first = $opt->{value_first} ? 1 : 0;
 	
 	if (!$callback) {
 		my $maxlen = $with_total ? length($self->root->count) : length($self->root->max);
@@ -484,14 +503,22 @@ sub output {
 				print $fh $indent x ($node->depth - ($with_total ? 0 : 1));
 				print $fh $prefix;
 				
-				if ($nopadding) {
+				if ($value_first) {
+					print $fh $node->value;
+				} elsif ($no_padding) {
 					print $fh $node->count;
 				} else {
 					printf $fh '%'.$maxlen.'d', $node->count;
 				}
 				
 				print $fh $separator;
-				print $fh $node->value;
+				
+				if ($value_first) {
+					print $fh $node->count;
+				} else {
+					print $fh $node->value;
+				}
+				
 				print $fh "\n";
 			}
 		};
