@@ -244,4 +244,20 @@ sub _extract_key {
 	return $self;
 }
 
+=head1 AUTHOR
+
+Mahiro Ando, C<< <mahiro at cpan.org> >>
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2012 Mahiro Ando.
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of either: the GNU General Public License as published
+by the Free Software Foundation; or the Artistic License.
+
+See http://dev.perl.org/licenses/ for more information.
+
+=cut
+
 1;

@@ -76,12 +76,12 @@ The date/time value is automatically extracted from the log line,
 where the first date/time parsable field enclosed by a pair of brackets C<[...]>
 is detected.
 
-The date/time string is parsed by the L<Date::Parse::str2time()|Date::Parse/str2time> function.
-See also L<Data::Freq::Record::logsplit()|Data::Freq::Record/logsplit>.
+The date/time string is parsed by the L<Date::Parse/str2time> function.
+See also L<Data::Freq::Record/logsplit>.
 
 =head2 Multi-level counting
 
-The initialization parameters for the L<new()|/new> method can be customized
+The initialization parameters for the L</new>() method can be customized
 for a multi-level analysis.
 
 If the field specifications are given, e.g.
@@ -105,8 +105,6 @@ then the output will look like this:
         6: user3
     ...
 
-See L<Data::Freq::Field> for details about the field specification.
-
 Below is another example along this line:
 
     Data::Freq->new('month', 'day');
@@ -125,6 +123,8 @@ with the output:
         789: 2012-02-02
         ...
 
+See L</field specification> for more details about the initialization parameters.
+
 =head2 Custom input
 
 The data source is not restricted to log files.
@@ -139,12 +139,14 @@ For example, a CSV file can be analyzed as below:
     	$data->add([split /,/]);
     }
 
-Note: the L<add()|/add> method accepts an array ref,
+Note: the L</add>() method accepts an array ref,
 so that the input does not have to be split by the default
-L<logsplit()|Data::Freq::Record/logsplit> function.
+L<Data::Freq::Record/logsplit> function.
 
 For more generic input data, a hash ref can also be given
-to the L<add()|/add> method. E.g.
+to the L</add>() method.
+
+E.g.
 
     my $data = Data::Freq->new({key => 'x'}, {key => 'y'});
     # Note: keys *cannot* be abbrebiated like Data::Freq->new('x', 'y')
@@ -160,7 +162,9 @@ where the multiple elements selected by the C<pos> or C<key> will be C<join()>'e
 by a space (or the value of C<$">).
 
 This is useful when a log format contains a date that is not enclosed by a pair of
-brackets C<[...]>. E.g.
+brackets C<[...]>.
+
+E.g.
 
     my $data = Data::Freq->new({type => 'date', pos => [0..3]});
     
@@ -277,9 +281,98 @@ to disable the left padding.
       5: Level 2
     ...
 
+=head2 Field specification
+
+Each argument passed to the L</new>() method is passed to the L<Data::Freq::Field/new> method.
+
+For example,
+
+    Data::Freq->new(
+        'month',
+        'day',
+    );
+    
+is equivalent to
+
+    Data::Freq->new(
+        Data::Freq::Field->new('month'),
+        Data::Freq::Field->new('day'),
+    );
+
+and because of the way the argument is interpreted by the L<Data::Freq::Field> class,
+it is also equivalent to
+
+    Data::Freq->new(
+        Data::Freq::Field->new({type => 'month'}),
+        Data::Freq::Field->new({type => 'day'}),
+    );
+
+=over 4
+
+=item * C<< type => ['text' | 'number' | 'date'] >>
+
+The basic data types are C<'text'>, C<'number'>, and C<'date'>,
+which determine how each input data is normalized for the frequency counting,
+and how the results are sorted.
+
+The C<'date'> type can also be written as the format string for L<POSIX::strftime> function.
+
+    Data::Freq->new('%Y-%m');
+    
+    Data::Freq->new({type => '%H'});
+
+If the type is simply specified as C<'date'>, the format defaults to C<'%Y-%m-%d'>.
+
+In addition, the keywords below can be used as synonims:
+
+    'year'  : equivalent to '%Y'
+    'month' : equivalent to '%Y-%m'
+    'day'   : equivalent to '%Y-%m-%d'
+    'hour'  : equivalent to '%Y-%m-%d %H'
+    'minute': equivalent to '%Y-%m-%d %H:%M'
+    'second': equivalent to '%Y-%m-%d %H:%M:%S'
+
+=item * C<< sort => ['value' | 'count' | 'first' | 'last'] >>
+
+The C<sort> parameter is used as the key by which the group of records
+will be sorted for the output.
+
+    'value': sort by the normalized value
+    'count': sort by the frequency count
+    'first': sort by the first occurrence in the input
+    'last' : sort by the last occurrence in the input
+
+=item * C<< order => ['asc' | 'desc'] >>
+
+The C<order> parameter controls the sorting in the either ascending or descending order.
+
+=item * C<< pos => [0, 1, 2, -1, -2, ...] >>
+
+If the C<pos> parameter is given or an integer value (or a list of integers) is given
+without a parameter name, the value whose frequency is counted will be selected
+at the indices from an array ref input or a text split
+by the L<logsplit|Data::Freq::Record/logsplit>() function.
+
+=item * C<< key => [any key(s) for input hash refs] >>
+
+If the C<pos> parameter is given, it is assumed that the input is a hash ref,
+where the value whose frequency is counted will be selected by the specified key(s).
+
+=item * C<< convert => sub {...} >>
+
+=back
+
+If the C<type> parameter is either C<text> or C<number>,
+the results are sorted by C<count> in the descending order by default
+(i.e. the most frequent value first).
+
+For the C<date> type, the C<sort> parameter defaults to C<value>,
+and the C<order> parameter defaults to C<asc>
+(i.e. the time-line order).
+
 =head2 Frequency tree
 
-Once all the data have been collected with the L<add()|/add> method,
+Once all the data have been collected with the L</add>() method,
 a C<frequency tree> has been constructed internally.
 
 Suppose the C<Data::Freq> instance is initialized with the two fields as below:
@@ -307,9 +400,9 @@ In the diagram, a node is represented by a pair of braces C<{...}>,
 and each integer value is the total number of occurrences of the node value,
 under its parent category.
 
-The root node maintains the total number of records that have been added.
+The root node maintains the grand total of records that have been added.
 
-The tree structure can be recursively visited by the L<traverse()|/traverse> method.
+The tree structure can be recursively visited by the L</traverse>() method.
 
 Below is an example to generate a HTML:
 
@@ -321,7 +414,7 @@ Below is an example to generate a HTML:
         my ($count, $value) = ($node->count, $node->value);
             # HTML-escape $value if necessary
         
-        print qq(<li>$count: $value\n);
+        print qq(<li>$count: $value);
         
         if (@$children > 0) {
             print qq(\n<ul>\n);
@@ -349,16 +442,16 @@ Usage:
 Constructs a C<Data::Freq> instance.
 
 The arguments C<$field1>, C<$field2>, etc. are instances of L<Data::Freq::Field>,
-or any valid arguments that can be passed to L<< Data::Freq::Field::new()|Data::Freq::Field/new >>.
+or any valid arguments that can be passed to L<Data::Freq::Field/new>.
 
-The actual data to be analyzed need to be added by the L<add()|/add> method one by one.
+The actual data to be analyzed need to be added by the L</add>() method one by one.
 
 The C<Data::Freq> object maintains the counting results, based on the specified fields.
 The first field (C<$field1>) is used to group the added data into the major category.
 The next subsequent field (C<$field2>) is for the sub-category under each major group.
 Any more subsequent fields are interpreted recursively as sub-sub-category, etc.
 
-If no fields are given to the C<new()> method, one field of the C<text> type will be assumed.
+If no fields are given to the L</new>() method, one field of the C<text> type will be assumed.
 
 =cut
 
@@ -381,14 +474,17 @@ sub new {
 Usage:
 
     $data->add("A record");
+    
     $data->add("A log line text\n");
+    
     $data->add(['Already', 'split', 'data']);
+    
     $data->add({key1 => 'data1', key2 => 'data2', ...});
 
 Adds a record that increments the counting by 1.
 
-The interpretation of the input depends on the type of fields specified in the C<new()> method.
-See L<Data::Freq::Field::evaluate()|Data::Freq::Field/evaluate>.
+The interpretation of the input depends on the type of fields specified in the L</new>() method.
+See L<Data::Freq::Field/evaluate>.
 
 =cut
 
@@ -449,13 +545,13 @@ Any open handle or an instance of C<IO::*> can be passed as the output destinati
 If the argument is a subroutine or a name of a subroutine,
 it is regarded as a callback that will be called for each node of the I<frequency tree>
 in the depth-first order.
-(See L</frequency tree> for details about the I<counting tree>.)
+(See L</frequency tree> for details.)
 
 The following arguments are passed to the callback:
 
 =over 4
 
-=item * $node
+=item * $node: Data::Freq::Node
 
 The current node (L<Data::Freq::Node>)
 
@@ -540,7 +636,8 @@ Usage:
         
         # Do something with $node before its child nodes
         
-        # $children is a sorted list of child nodes, based on $field
+        # $children is a sorted list of child nodes,
+        # based on the field specification
         for my $child (@$children) {
         	$recurse->($child); # invoke recursion
         }
@@ -548,13 +645,13 @@ Usage:
         # Do something with $node after its child nodes
     });
 
-Provide a way to traverse the result tree with more control than the L<output()|/output> method.
+Provides a way to traverse the result tree with more control than the L</output>() method.
 
 A callback must be passed as an argument, and will ba called with the following arguments:
 
 =over 4
 
-=item * $node
+=item * $node: Data::Freq::Node
 
 The current node (L<Data::Freq::Node>)
 
@@ -570,7 +667,7 @@ A subroutine ref, with which the resursion is invoked at a desired time
 
 =back
 
-When the L<traverse()|/traverse> method is called,
+When the L</traverse>() method is called,
 the root node is passed as the C<$node> parameter first,
 but B<no> recursion will be invoked automatically
 until the C<$recurse> subroutine is explicitly invoked for the child nodes.
@@ -601,15 +698,15 @@ sub traverse {
 
 =head2 root
 
-Return the root node of the I<frequency tree>. (See L</frequency tree> for details.)
+Returns the root node of the I<frequency tree>. (See L</frequency tree> for details.)
 
-The root node is created during the L<new()|/new> method call,
+The root node is created during the L</new>() method call,
 and maintains the total number of added records and a reference to its direct child nodes
 for the first field.
 
 =head2 fields
 
-Return the array ref to the list of fields (L<Data::Freq::Field>).
+Returns the array ref to the list of fields (L<Data::Freq::Field>).
 
 The returned array is B<not> supposed to be modified.
 
