@@ -23,7 +23,7 @@ our $VERSION = '0.01';
 =cut
 
 sub new {
-	my ($class, $field, $value, $depth) = @_;
+	my ($class, $value, $depth) = @_;
 	my $parent = undef;
 	
 	if (ref $class) {
@@ -36,7 +36,6 @@ sub new {
 	return bless {
 		# For this node's own
 		count    => 0,
-		field    => $field,
 		value    => $value,
 		
 		# Parent & children
@@ -57,12 +56,12 @@ sub new {
 =cut
 
 sub add_subnode {
-	my ($self, $field, $value) = @_;
+	my ($self, $value) = @_;
 	
 	my $child = ($self->children->{$value} ||=
-			$self->new($field, $value, $self->depth + 1));
+			$self->new($value, $self->depth + 1));
 	
-	$child->{first} = $self->count if $child->{count} == 0;
+	$child->{first} = $self->count if $child->count == 0;
 	$child->{last} = $self->count;
 	
 	$child->{count}++;
@@ -75,8 +74,6 @@ sub add_subnode {
 }
 
 =head2 count
-
-=head2 field
 
 =head2 value
 
@@ -95,7 +92,6 @@ sub add_subnode {
 =cut
 
 sub count    {shift->{count   }}
-sub field    {shift->{field   }}
 sub value    {shift->{value   }}
 sub parent   {shift->{parent  }}
 sub children {shift->{children}}

@@ -7,6 +7,8 @@ use Test::More tests => 6;
 
 use Data::Freq;
 
+my $root_value = $Data::Freq::ROOT_VALUE;
+
 subtest single => sub {
 	plan tests => 4;
 	
@@ -23,7 +25,7 @@ subtest single => sub {
 	my @result;
 	$data->output(sub {push @result, $_[0]});
 	
-	is_deeply([map {$result[0]->$_} qw(value count depth)], [undef, 7, 0]);
+	is_deeply([map {$result[0]->$_} qw(value count depth)], [$root_value, 7, 0]);
 	is_deeply([map {$result[1]->$_} qw(value count depth)], ['foo', 4, 1]);
 	is_deeply([map {$result[2]->$_} qw(value count depth)], ['bar', 2, 1]);
 	is_deeply([map {$result[3]->$_} qw(value count depth)], ['baz', 1, 1]);
@@ -43,7 +45,7 @@ subtest number => sub {
 	$data->output(sub {push @result, $_[0]});
 	my $i = 0;
 	
-	is_deeply([map {$result[$i]->$_} qw(value count depth)], [undef, 4, 0]); $i++;
+	is_deeply([map {$result[$i]->$_} qw(value count depth)], [$root_value, 4, 0]); $i++;
 	{
 		is_deeply([map {$result[$i]->$_} qw(value count depth)], [1, 1, 1]); $i++;
 		is_deeply([map {$result[$i]->$_} qw(value count depth)], [2, 1, 1]); $i++;
@@ -66,7 +68,7 @@ subtest text => sub {
 	$data->output(sub {push @result, $_[0]});
 	my $i = 0;
 	
-	is_deeply([map {$result[$i]->$_} qw(value count depth)], [undef, 4, 0]); $i++;
+	is_deeply([map {$result[$i]->$_} qw(value count depth)], [$root_value, 4, 0]); $i++;
 	{
 		is_deeply([map {$result[$i]->$_} qw(value count depth)], [1, 1, 1]); $i++;
 		is_deeply([map {$result[$i]->$_} qw(value count depth)], [10, 1, 1]); $i++;
@@ -97,7 +99,7 @@ subtest date => sub {
 	$data->output(sub {push @result, $_[0]});
 	my $i = 0;
 	
-	is_deeply([map {$result[$i]->$_} qw(value count depth)], [undef, 12, 0]); $i++;
+	is_deeply([map {$result[$i]->$_} qw(value count depth)], [$root_value, 12, 0]); $i++;
 	{
 		is_deeply([map {$result[$i]->$_} qw(value count depth)], ['2012-01', 5, 1]); $i++;
 		{

@@ -16,6 +16,8 @@ Version 0.01
 
 our $VERSION = '0.01';
 
+our $ROOT_VALUE = 'Total';
+
 use Data::Freq::Field;
 use Data::Freq::Node;
 use Data::Freq::Record;
@@ -349,7 +351,7 @@ sub new {
 	} (@_ ? (@_) : ('text'))];
 	
 	return bless {
-		root   => Data::Freq::Node->new(),
+		root   => Data::Freq::Node->new($ROOT_VALUE),
 		fields => $fields,
 	}, $class;
 }
@@ -382,7 +384,7 @@ sub add {
 		for my $field (@{$self->fields}) {
 			my $value = $field->evaluate($record);
 			last unless defined $value;
-			$node = $node->add_subnode($field, $value);
+			$node = $node->add_subnode($value);
 		}
 	}
 	
