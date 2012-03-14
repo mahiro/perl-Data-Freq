@@ -287,33 +287,31 @@ under its parent category.
 
 The root node maintains the total number of records that have been added.
 
-The tree structure can be recursively visited by the L<traverse()|/traverse> method:
+The tree structure can be recursively visited by the L<traverse()|/traverse> method.
+
+Below is an example to generate a HTML:
 
     print qq(<ul>\n);
     
     $data->traverse(sub {
         my ($node, $children, $recurse) = @_;
-        my $indent = '    ' x ($node->depth - 1);
-        my $indent1 = $indent.'  ';
-        my $indent2 = $indent.'    ';
         
         my ($count, $value) = ($node->count, $node->value);
             # HTML-escape $value if necessary
         
-        print $indent1, qq(<li>\n);
-        print $indent2, qq($count: $value\n);
+        print qq(<li>$count: $value\n);
         
         if (@$children > 0) {
-			print $indent2, qq(<ul>\n);
-			
-			for my $child (@$children) {
-				$recurse->($child); # invoke recursion
-			}
-			
-			print $indent2, qq(</ul>\n);
-		}
-		
-        print $indent1, qq(</li>\n);
+            print qq(\n<ul>\n);
+            
+            for my $child (@$children) {
+                $recurse->($child); # invoke recursion
+            }
+            
+            print qq(</ul>\n);
+        }
+        
+        print qq(</li>\n);
     });
     
     print qq(</ul>\n);
