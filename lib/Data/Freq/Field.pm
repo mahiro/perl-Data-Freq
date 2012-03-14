@@ -6,9 +6,15 @@ package Data::Freq::Field;
 
 =head1 NAME
 
-Data::Freq::Field
+Data::Freq::Field - Controls counting with Data::Freq at each level
+
+=head1 VERSION
+
+Version 0.01
 
 =cut
+
+our $VERSION = '0.01';
 
 use Carp qw(croak);
 use Date::Parse qw(str2time);
@@ -98,6 +104,7 @@ sub evaluate {
 }
 
 =head2 sort_result
+
 =cut
 
 sub sort_result {

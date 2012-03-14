@@ -191,7 +191,7 @@ SKIP: {
 			my $result;
 			
 			$data->output(IO::String->new($result), {
-				leftalign => 1, indent => '    ', prefix => '- ', separator => ' => ',
+				nopadding => 1, indent => '    ', prefix => '- ', separator => ' => ',
 			});
 			
 			my @chunks = split /\n/, $result;

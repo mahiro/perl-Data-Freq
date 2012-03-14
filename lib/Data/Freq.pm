@@ -6,8 +6,7 @@ package Data::Freq;
 
 =head1 NAME
 
-Data::Freq - collects data, counts frequency, and makes up
-a multi-level counting report
+Data::Freq - Collects data, counts frequency, and makes up a multi-level counting report
 
 =head1 VERSION
 
@@ -27,7 +26,7 @@ use Scalar::Util qw(blessed openhandle);
 
     use Data::Freq;
     
-    my $data = Data::Freq->new();
+    my $data = Data::Freq->new('date');
     
     while (my $line = <STDIN>) {
         $data->add($line);
@@ -35,9 +34,24 @@ use Scalar::Util qw(blessed openhandle);
     
     $data->output();
 
-=head1 EXAMPLES
+=head1 DESCRIPTION
+
+C<Data::Freq> is an object-oriented module to collect data from log files
+or any kind of data sources, count frequency of particular patterns,
+and generate a counting report.
+
+The simplest usage is to count lines of a log files in terms of a particular category
+such as date, username, remote address, and so on.
+
+For more advanced usage, C<Data::Freq> is capable of aggregating counting results
+at multiple levels.
+For example, lines of a log file can be grouped into I<months> first,
+and then under each of the months, they can be further grouped into individual I<days>,
+where all the frequency of both months and days is summed up as expected.
 
 =head2 Analyzing an Apache access log
+
+The example below is a copy from the L</SYNOPSIS> section.
 
     my $data = Data::Freq->new('date');
     
@@ -47,7 +61,7 @@ use Scalar::Util qw(blessed openhandle);
     
     $data->output();
 
-The above example will generate a report as below:
+It will generate a report that looks like this:
 
     123: 2012-01-01
     456: 2012-01-02
@@ -58,21 +72,24 @@ where the left column shows the number of occurrences of each date.
 
 The date/time value is automatically extracted from the log line,
 where the first date/time parsable field enclosed by a pair of brackets C<[...]>
-is considered as a date/time field.
+is detected.
 
 The date/time string is parsed by the L<Date::Parse::str2time()|Date::Parse/str2time> function.
 See also L<Data::Freq::Record::logsplit()|Data::Freq::Record/logsplit>.
 
 =head2 Multi-level counting
 
-If the initialization parameters for L<new()|/new> are customized, e.g.
+The initialization parameters for the L<new()|/new> method can be customized
+for a multi-level analysis.
+
+If the field specifications are given, e.g.
 
     Data::Freq->new(
         {type => 'date'},           # field spec for level 1
         {type => 'text', pos => 2}, # field spec for level 2
     );
     # assuming the position 2 (third portion, 0-based)
-    # is the remote username
+    # is the remote username.
 
 then the output will look like this:
 
@@ -106,6 +123,199 @@ with the output:
         789: 2012-02-02
         ...
 
+=head2 Custom input
+
+The data source is not restricted to log files.
+For example, a CSV file can be analyzed as below:
+
+    my $data = Data::Freq->new({pos => 0}, {pos => 1});
+    # or more simply, Data::Freq->new(0, 1);
+    
+    open(my $csv, 'source.csv');
+    
+    while (<$csv>) {
+    	$data->add([split /,/]);
+    }
+
+Note: the L<add()|/add> method accepts an array ref,
+so that the input does not have to be split by the default
+L<logsplit()|Data::Freq::Record/logsplit> function.
+
+For more generic input data, a hash ref can also be given
+to the L<add()|/add> method. E.g.
+
+    my $data = Data::Freq->new({key => 'x'}, {key => 'y'});
+    # Note: keys *cannot* be abbrebiated like Data::Freq->new('x', 'y')
+    
+    $data->add({x => 'foo', y => 'abc'});
+    $data->add({x => 'bar', y => 'def'});
+    $data->add({x => 'foo', y => 'ghi'});
+    $data->add({x => 'bar', y => 'jkl'});
+    ...
+
+In the field specifications, the value of C<pos> or C<key> can also be an array ref,
+where the multiple elements selected by the C<pos> or C<key> will be C<join()>'ed
+by a space (or the value of C<$">).
+
+This is useful when a log format contains a date that is not enclosed by a pair of
+brackets C<[...]>. E.g.
+
+    my $data = Data::Freq->new({type => 'date', pos => [0..3]});
+    
+    # Log4x with %d{dd MMM yyyy HH:mm:ss,SSS}
+    $data->add("01 Jan 2012 01:02:03,456 INFO  [main] foo.bar.Baz:123 - test test test\n");
+    
+    # pos 0: "01"
+    # pos 1: "Jan"
+    # pos 2: "2012"
+    # pos 3: "01:02:03,456"
+
+As a result, "01 Jan 2012 01:02:03,456" will be parsed as a date string.
+
+=head2 Custom output
+
+The L<output()|/output> method accepts different types of parameters as below:
+
+=over 4
+
+=item * A file handle or an instance of C<IO::*>
+
+By default, the result is printed out to C<STDOUT>.
+With this parameter given, it can be any other output destination.
+
+=item * A callback subroutine (CODE ref or subroutine name)
+
+If a callback is specified, it will be invoked with a node object (L<Data::Freq::Node>)
+passed as an argument.
+See L</frequency tree> for more details about the tree structure.
+
+Roughly, each node represents a counting result for each line
+in the default output format, in the depth-first order (i.e. the same order
+as the default output lines).
+
+    $data->output(sub {
+        my $node = shift;
+        print "Count: ", $node->count, "\n";
+        print "Value: ", $node->value, "\n";
+        print "Depth: ", $node->depth, "\n";
+        print "\n";
+    });
+
+=item * A hash ref of options to control output format
+
+    $data->output({
+        indent    => '  ', # repeats (depth - 1) times
+        prefix    => ''  , # prepended before the count
+        nopadding => 0   , # (see below)
+        separator => ': ', # separates the count and the value
+    });
+
+=item * The format option can be specified together with a file handle.
+
+    $data->output(\*STDERR, {indent => "\t"});
+
+=back
+
+The default output format has apparent ambiguity between the indent
+and the padding for alignment.
+
+For example, consider an output below:
+
+    12000: Level 1
+       9000: Level 2
+         9000: Level 3
+          5: Level 2
+    ...
+
+where the second "Level 2" appears to have a deeper indent than the "Level 3."
+
+Although the positions of colons (C<:>) are consistently aligned,
+it may seem to be slightly inconsistent.
+
+The indent depth will be clearer if a C<prefix> is added:
+
+    $data->output({prefix => '* '});
+    
+    * 12000: Level 1
+      *  9000: Level 2
+        *  9000: Level 3
+      *     5: Level 2
+    ...
+
+Alternatively, the C<nopadding> option can be set to a true value
+to disable the left padding.
+
+    $data->output({nopadding => 1});
+    
+    12000: Level 1
+      9000: Level 2
+        9000: Level 3
+      5: Level 2
+    ...
+
+=head2 Frequency tree
+
+Once all the data have been collected with the L<add()|/add> method,
+a C<frequency tree> has been constructed internally.
+
+Suppose the C<Data::Freq> instance is initialized with the two fields as below:
+
+   var $field1 = Data::Freq::Field->new({type => 'month'});
+   var $field2 = Data::Freq::Field->new({type => 'text', pos => 2});
+   var $data = Data::Freq->new($field1, $field2);
+   ...
+
+a result tree that looks like below will be constructed as each data record is added:
+
+     Depth 0            Depth 1             Depth 2
+                        $field1             $field2
+
+    {432: root}--+--{123: "2012-01"}--+--{10: "user1"}
+                 |                    +--{ 8: "user2"}
+                 |                    +--{ 7: "user3"}
+                 |                    ...
+                 +--{135: "2012-02"}--+--{11: "user3"}
+                 |                    +--{ 9: "user2"}
+                 |                    ...
+                 ...
+
+In the diagram, a node is represented by a pair of braces C<{...}>,
+and each integer value is the total number of occurrences of the node value,
+under its parent category.
+
+The root node maintains the total number of records that have been added.
+
+The tree structure can be recursively visited by the L<traverse()|/traverse> method:
+
+    print qq(<ul>\n);
+    
+    $data->traverse(sub {
+        my ($node, $children, $recurse) = @_;
+        my $indent = '    ' x ($node->depth - 1);
+        my $indent1 = $indent.'  ';
+        my $indent2 = $indent.'    ';
+        
+        my ($count, $value) = ($node->count, $node->value);
+            # HTML-escape $value if necessary
+        
+        print $indent1, qq(<li>\n);
+        print $indent2, qq($count: $value\n);
+        
+        if (@$children > 0) {
+			print $indent2, qq(<ul>\n);
+			
+			for my $child (@$children) {
+				$recurse->($child); # invoke recursion
+			}
+			
+			print $indent2, qq(</ul>\n);
+		}
+		
+        print $indent1, qq(</li>\n);
+    });
+    
+    print qq(</ul>\n);
+
 =head1 METHODS
 
 =head2 new
@@ -117,7 +327,7 @@ Usage:
 Constructs a C<Data::Freq> instance.
 
 The arguments C<$field1>, C<$field2>, etc. are instances of L<Data::Freq::Field>,
-or any valid arguments that can be passed to L<< Data::Freq::Field->new()|Data::Freq::Field/new >>.
+or any valid arguments that can be passed to L<< Data::Freq::Field::new()|Data::Freq::Field/new >>.
 
 The actual data to be analyzed need to be added by the L<add()|/add> method one by one.
 
@@ -183,7 +393,7 @@ sub add {
 
 Usage:
 
-	# I/O
+    # I/O
     $data->output();      # print results (default format)
     $data->output(\*OUT); # print results to open handle
     $data->output($io);   # print results to IO::* object
@@ -199,13 +409,13 @@ Usage:
     $data->output({
         indent    => '  ', # repeats depth times at each node
         prefix    => ''  , # prepended to each record, after the indent
-        leftalign => 0   , # true or false
+        nopadding => 0   , # true or false
         separator => ': ', # separates the count and the value
     });
     
-    # Combination with options
-    $data->output($open_fh , {opt => ...});
-    $data->output(sub {...}, {opt => ...});
+    # Combination
+    $data->output(\*STDERR, {opt => ...});
+    $data->output($open_fh, {opt => ...});
 
 Generates a report of the counting results.
 
@@ -213,9 +423,9 @@ If no arguments are given, default format results are printed out to C<STDOUT>.
 Any open handle or an instance of C<IO::*> can be passed as the output destination.
 
 If the argument is a subroutine or a name of a subroutine,
-it is regarded as a callback that will be called for each node of the I<counting tree>
+it is regarded as a callback that will be called for each node of the I<frequency tree>
 in the depth-first order.
-(See L</RESULTS> for details about the I<counting tree>.)
+(See L</frequency tree> for details about the I<counting tree>.)
 
 The following arguments are passed to the callback:
 
@@ -225,9 +435,11 @@ The following arguments are passed to the callback:
 
 The current node (L<Data::Freq::Node>)
 
-=item * $children
+=item * $children: [$child_node1, $child_node2, ...]
 
 An array ref to the list of child nodes, sorted based on the field
+
+Note: C<< $node->children >> is a hash ref (unsorted) of a raw counting data.
 
 =back
 
@@ -251,7 +463,7 @@ sub output {
 	
 	my $indent    = defined $opt->{indent}    ? $opt->{indent}    : '  ';
 	my $prefix    = defined $opt->{prefix}    ? $opt->{prefix}    : '';
-	my $leftalign = defined $opt->{leftalign} ? $opt->{leftalign} : 0;
+	my $nopadding = defined $opt->{nopadding} ? $opt->{nopadding} : 0;
 	my $separator = defined $opt->{separator} ? $opt->{separator} : ': ';
 	
 	if (!$callback) {
@@ -265,7 +477,7 @@ sub output {
 				$fh->print($indent x ($node->depth - 1));
 				$fh->print($prefix);
 				
-				if ($leftalign) {
+				if ($nopadding) {
 					$fh->print($node->count);
 				} else {
 					$fh->printf('%'.$maxlen.'d', $node->count);
@@ -312,19 +524,22 @@ A callback must be passed as an argument, and will ba called with the following 
 
 The current node (L<Data::Freq::Node>)
 
-=item * $children
+=item * $children: [$child_node1, $child_node2, ...]
 
 An array ref to the list of child nodes, sorted based on the field
 
-=item * $recurse
+Note: C<< $node->children >> is a hash ref (unsorted) of a raw counting data.
+
+=item * $recurse: sub ($a_child_node)
 
 A subroutine ref, with which the resursion is invoked at a desired time
 
 =back
 
-Initially, the root node is passed as the C<$node> parameter, but the callback will
-B<not> be invoked automatically until the C<$recurse> subroutine is explicitly invoked
-for the child nodes.
+When the L<traverse()|/traverse> method is called,
+the root node is passed as the C<$node> parameter first,
+but B<no> recursion will be invoked automatically
+until the C<$recurse> subroutine is explicitly invoked for the child nodes.
 
 =cut
 
@@ -352,7 +567,7 @@ sub traverse {
 
 =head2 root
 
-Return the root node of the I<counting tree>. (See L</RESULTS> for details.)
+Return the root node of the I<frequency tree>. (See L</frequency tree> for details.)
 
 The root node is created during the L<new()|/new> method call,
 and maintains the total number of added records and a reference to its direct child nodes
@@ -368,36 +583,6 @@ The returned array is B<not> supposed to be modified.
 
 sub root   {shift->{root  }}
 sub fields {shift->{fields}}
-
-=head1 RESULTS
-
-Once all the data have been collected with the L<add()|/add> method,
-a C<couting tree> has been constructed internally.
-
-Suppose the C<Data::Freq> instance is initialized with the two fields as below:
-
-   var $field1 = Data::Freq::Field->new({type => 'month'});
-   var $field2 = Data::Freq::Field->new({type => 'text', pos => 2});
-   var $data = Data::Freq->new($field1, $field2);
-   ...
-
-a result tree that looks like below will be constructed as each data record is added:
-
-    <Depth: 0>        <Depth: 1>        <Depth: 2>
-                       $field1           $field2
-
-    {400: root}--+--{101: 2012-01}--+--{10: user1}
-                 |                  +--{ 8: user2}
-                 |                  +--{ 7: user3}
-                 |                  ...
-                 +--{102: 2012-02}--+--{11: user3}
-                 |                  +--{ 9: user2}
-                 |                  ...
-                 ...
-
-A node is represented by a pair of braces C<{...}>, and each integer value
-is the total number of occurrences of the node value, under the parent category.
-The root node maintains the total number of records that have been added.
 
 =head1 AUTHOR
 

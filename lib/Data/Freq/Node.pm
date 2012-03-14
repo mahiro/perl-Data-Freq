@@ -4,6 +4,18 @@ use warnings;
 
 package Data::Freq::Node;
 
+=head1 NAME
+
+Data::Freq::Node - Represents a node of the result tree constructed by Data::Freq
+
+=head1 VERSION
+
+Version 0.01
+
+=cut
+
+our $VERSION = '0.01';
+
 =head1 METHODS
 
 =head2 new
