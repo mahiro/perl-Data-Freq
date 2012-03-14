@@ -474,18 +474,18 @@ sub output {
 			my $node = shift;
 			
 			if ($node->depth > 0) {
-				$fh->print($indent x ($node->depth - 1));
-				$fh->print($prefix);
+				print $fh $indent x ($node->depth - 1);
+				print $fh $prefix;
 				
 				if ($nopadding) {
-					$fh->print($node->count);
+					print $fh $node->count;
 				} else {
-					$fh->printf('%'.$maxlen.'d', $node->count);
+					printf $fh '%'.$maxlen.'d', $node->count;
 				}
 				
-				$fh->print($separator);
-				$fh->print($node->value);
-				$fh->print("\n");
+				print $fh $separator;
+				print $fh $node->value;
+				print $fh "\n";
 			}
 		};
 	}
