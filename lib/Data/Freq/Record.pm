@@ -75,6 +75,7 @@ sub new {
 		$self->{text} = '';
 		$self->{init} = 'text';
 	} elsif (!ref $input) {
+		$input =~ s/\r?\n$//;
 		$self->{text}  = $input;
 		$self->{init}  = 'text';
 	} elsif (ref $input eq 'ARRAY') {
