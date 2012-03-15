@@ -492,7 +492,7 @@ Usage:
 Adds a record that increments the counting by 1.
 
 The interpretation of the input depends on the type of fields specified in the L</new>() method.
-See L<Data::Freq::Field/evaluate>.
+See L<Data::Freq::Field/evaluate_record>.
 
 =cut
 
@@ -506,7 +506,7 @@ sub add {
 		$node->{count}++;
 		
 		for my $field (@{$self->fields}) {
-			my $value = $field->evaluate($record);
+			my $value = $field->evaluate_record($record);
 			last unless defined $value;
 			$node = $node->add_subnode($value);
 		}

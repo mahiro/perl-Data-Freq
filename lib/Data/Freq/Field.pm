@@ -83,11 +83,11 @@ sub new {
 	return $self;
 }
 
-=head2 evaluate
+=head2 evaluate_record
 
 =cut
 
-sub evaluate {
+sub evaluate_record {
 	my ($self, $record) = @_;
 	my $result = undef;
 	
