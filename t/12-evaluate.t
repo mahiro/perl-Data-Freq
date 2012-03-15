@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 
 use Data::Freq::Field;
 use Data::Freq::Record;
@@ -63,4 +63,17 @@ subtest key => sub {
 	
 	$field = Data::Freq::Field->new({key => [qw(a b c)]});
 	is $field->evaluate(Data::Freq::Record->new({a => 'A', b => 'B', c => 'C', d => 'D'})), 'A B C';
+};
+
+subtest convert => sub {
+	plan tests => 1;
+	my $field;
+	
+	$field = Data::Freq::Field->new({convert => sub {
+		my $str = shift;
+		$str =~ s/ .*//;
+		return $str;
+	}});
+	
+	is $field->evaluate(Data::Freq::Record->new('foo bar baz')), 'foo';
 };

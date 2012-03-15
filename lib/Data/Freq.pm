@@ -18,6 +18,7 @@ our $VERSION = '0.01';
 
 our $ROOT_VALUE = 'Total';
 
+use Carp qw(croak);
 use Data::Freq::Field;
 use Data::Freq::Node;
 use Data::Freq::Record;
@@ -315,7 +316,7 @@ The basic data types are C<'text'>, C<'number'>, and C<'date'>,
 which determine how each input data is normalized for the frequency counting,
 and how the results are sorted.
 
-The C<'date'> type can also be written as the format string for L<POSIX::strftime> function.
+The C<'date'> type can also be written as the format string for L<POSIX::strftime>() function.
 
     Data::Freq->new('%Y-%m');
     
@@ -359,6 +360,11 @@ If the C<pos> parameter is given, it is assumed that the input is a hash ref,
 where the value whose frequency is counted will be selected by the specified key(s).
 
 =item * C<< convert => sub {...} >>
+
+If the C<convert> parameter is set to a subroutine ref or a subroutine name,
+it is invoked to convert the value to a normalized form for frequency counting.
+
+The subroutine is expected to take one string argument and return a converted string.
 
 =back
 
@@ -458,10 +464,12 @@ If no fields are given to the L</new>() method, one field of the C<text> type wi
 sub new {
 	my $class = shift;
 	
-	my $fields = [map {
+	my $fields = eval {[map {
 		blessed($_) && $_->isa('Data::Freq::Field') ?
 				$_ : Data::Freq::Field->new($_)
-	} (@_ ? (@_) : ('text'))];
+	} (@_ ? (@_) : ('text'))]};
+	
+	croak $@ if $@;
 	
 	return bless {
 		root   => Data::Freq::Node->new($ROOT_VALUE),
@@ -687,7 +695,7 @@ sub traverse {
 		
 		if (my $field = $fields->[$node->depth]) {
 			$children = [values %{$node->children}];
-			$children = $field->sort_result($children);
+			$children = $field->select_nodes($children);
 		}
 		
 		$callback->($node, $children, $recurse);

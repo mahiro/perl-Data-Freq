@@ -32,17 +32,35 @@ sub new {
 	my $self = bless {}, $class;
 	
 	if (!ref $input) {
-		$self->_extract_any($input);
+		$self->_extract_any($input) or croak "invalid argument: $input";
 	} elsif (ref $input eq 'HASH') {
 		for my $target (qw(type sort order pos key)) {
 			if (defined $input->{$target}) {
 				my $method = "_extract_$target";
-				$self->$method($input->{$target});
+				
+				$self->$method($input->{$target})
+						or croak "invalid $target: $input->{$target}";
+			}
+		}
+		
+		for my $target (qw(offset limit)) {
+			if (defined $input->{$target}) {
+				$self->{$target} = int($input->{$target});
+			}
+		}
+		
+		for my $target (qw(convert)) {
+			if (defined $input->{$target}) {
+				$self->{$target} = $input->{$target};
+				
+				if (ref $input->{$target} ne 'CODE') {
+					croak "$target must be a CODE ref";
+				}
 			}
 		}
 	} elsif (ref $input eq 'ARRAY') {
 		for my $item (@$input) {
-			$self->_extract_any($item);
+			$self->_extract_any($item) or croak "invalid argument: $item";
 		}
 	} else {
 		croak "invalid field: $input";
@@ -92,7 +110,8 @@ sub evaluate {
 		
 		if ($self->{type} eq 'date') {
 			$result = looks_like_number($result) ? $result : str2time($result);
-			$result = strftime($self->{strftime}, localtime $result) if defined $result;
+			last TRY unless defined $result;
+			$result = strftime($self->{strftime}, localtime $result);
 		}
 	}
 	
@@ -103,29 +122,39 @@ sub evaluate {
 	return $result;
 }
 
-=head2 sort_result
+=head2 select_nodes
 
 =cut
 
-sub sort_result {
-	my ($self, $children) = @_;
+sub select_nodes {
+	my ($self, $nodes) = @_;
 	my $type  = $self->{type};
 	my $sort  = $self->{sort};
 	my $order = $self->{order};
 	
+	my @result;
+	
 	if ($type ne 'number' && $sort eq 'value') {
 		if ($order eq 'asc') {
-			return [sort {$a->$sort eq $b->$sort || $a->first <=> $b->first} @$children];
+			@result = sort {$a->$sort cmp $b->$sort || $a->first <=> $b->first} @$nodes;
 		} else {
-			return [sort {$b->$sort eq $a->$sort || $a->first <=> $b->first} @$children];
+			@result = sort {$b->$sort cmp $a->$sort || $a->first <=> $b->first} @$nodes;
 		}
 	} else {
 		if ($order eq 'asc') {
-			return [sort {$a->$sort <=> $b->$sort || $a->first <=> $b->first} @$children];
+			@result = sort {$a->$sort <=> $b->$sort || $a->first <=> $b->first} @$nodes;
 		} else {
-			return [sort {$b->$sort <=> $a->$sort || $a->first <=> $b->first} @$children];
+			@result = sort {$b->$sort <=> $a->$sort || $a->first <=> $b->first} @$nodes;
 		}
 	}
+	
+	if (defined $self->{offset} || defined $self->{limit}) {
+		my $offset = defined $self->{offset} ? $self->{offset} : 0;
+		my $length = defined $self->{limit} ? $self->{limit} : scalar(@result);
+		@result = splice(@result, $offset, $length);
+	}
+	
+	return \@result;
 }
 
 sub _extract_any {
@@ -207,10 +236,10 @@ sub _extract_order {
 	my ($self, $input) = @_;
 	return undef if !defined $input || ref($input) || $input eq '';
 	
-	if ($input =~ /^asc/i) {
+	if ($input =~ /^asc(end(ing)?)?$/i) {
 		$self->{order} = 'asc';
 		return $self;
-	} elsif ($input =~ /^desc$/i) {
+	} elsif ($input =~ /^desc(end(ing)?)?$/i) {
 		$self->{order} = 'desc';
 		return $self;
 	}
