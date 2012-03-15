@@ -190,7 +190,7 @@ The L<output()|/output> method accepts different types of parameters as below:
 By default, the result is printed out to C<STDOUT>.
 With this parameter given, it can be any other output destination.
 
-=item * A callback subroutine (CODE ref or subroutine name)
+=item * A callback subroutine ref
 
 If a callback is specified, it will be invoked with a node object (L<Data::Freq::Node>)
 passed as an argument.
@@ -361,7 +361,7 @@ where the value whose frequency is counted will be selected by the specified key
 
 =item * C<< convert => sub {...} >>
 
-If the C<convert> parameter is set to a subroutine ref or a subroutine name,
+If the C<convert> parameter is set to a subroutine ref,
 it is invoked to convert the value to a normalized form for frequency counting.
 
 The subroutine is expected to take one string argument and return a converted string.
@@ -525,7 +525,6 @@ Usage:
     $data->output($io);   # print results to IO::* object
     
     # Callback
-    $data->output('callback_name');
     $data->output(sub {
         my $node = shift;
         # $node is a Data::Freq::Node instance
@@ -550,9 +549,8 @@ Generates a report of the counting results.
 If no arguments are given, default format results are printed out to C<STDOUT>.
 Any open handle or an instance of C<IO::*> can be passed as the output destination.
 
-If the argument is a subroutine or a name of a subroutine,
-it is regarded as a callback that will be called for each node of the I<frequency tree>
-in the depth-first order.
+If the argument is a subroutine ref, it is regarded as a callback
+that will be called for each node of the I<frequency tree> in the depth-first order.
 (See L</frequency tree> for details.)
 
 The following arguments are passed to the callback:
