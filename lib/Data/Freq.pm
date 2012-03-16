@@ -50,7 +50,7 @@ For more advanced usage, C<Data::Freq> is capable of aggregating counting result
 at multiple levels.
 For example, lines of a log file can be grouped into I<months> first,
 and then under each of the months, they can be further grouped into individual I<days>,
-where all the frequency of both months and days is summed up as expected.
+where all the frequency of both months and days is summed up.
 
 =head2 Analyzing an Apache access log
 
@@ -64,7 +64,7 @@ The example below is a copy from the L</SYNOPSIS> section.
     
     $data->output();
 
-It will generate a report that looks like this:
+It will generate a report that looks something like this:
 
     123: 2012-01-01
     456: 2012-01-02
@@ -82,7 +82,7 @@ See also L<Data::Freq::Record/logsplit>.
 
 =head2 Multi-level counting
 
-The initialization parameters for the L</new>() method can be customized
+The initialization parameters for the L<new()|/new> method can be customized
 for a multi-level analysis.
 
 If the field specifications are given, e.g.
@@ -140,12 +140,12 @@ For example, a CSV file can be analyzed as below:
     	$data->add([split /,/]);
     }
 
-Note: the L</add>() method accepts an array ref,
+Note: the L<add()|/add> method accepts an array ref,
 so that the input does not have to be split by the default
 L<Data::Freq::Record/logsplit> function.
 
 For more generic input data, a hash ref can also be given
-to the L</add>() method.
+to the L<add()|/add> method.
 
 E.g.
 
@@ -170,7 +170,7 @@ E.g.
     my $data = Data::Freq->new({type => 'date', pos => [0..3]});
     
     # Log4x with %d{dd MMM yyyy HH:mm:ss,SSS}
-    $data->add("01 Jan 2012 01:02:03,456 INFO  [main] foo.bar.Baz:123 - test test test\n");
+    $data->add("01 Jan 2012 01:02:03,456 INFO - test log\n");
     
     # pos 0: "01"
     # pos 1: "Jan"
@@ -284,7 +284,7 @@ to disable the left padding.
 
 =head2 Field specification
 
-Each argument passed to the L</new>() method is passed to the L<Data::Freq::Field/new> method.
+Each argument passed to the L<new()|/new> method is passed to the L<Data::Freq::Field/new> method.
 
 For example,
 
@@ -316,7 +316,7 @@ The basic data types are C<'text'>, C<'number'>, and C<'date'>,
 which determine how each input data is normalized for the frequency counting,
 and how the results are sorted.
 
-The C<'date'> type can also be written as the format string for L<POSIX::strftime>() function.
+The C<'date'> type can also be written as the format string for L<POSIX::strftime()|POSIX/strftime> function.
 
     Data::Freq->new('%Y-%m');
     
@@ -352,7 +352,7 @@ The C<order> parameter controls the sorting in the either ascending or descendin
 If the C<pos> parameter is given or an integer value (or a list of integers) is given
 without a parameter name, the value whose frequency is counted will be selected
 at the indices from an array ref input or a text split
-by the L<logsplit|Data::Freq::Record/logsplit>() function.
+by the L<logsplit()|Data::Freq::Record/logsplit> function.
 
 =item * C<< key => [any key(s) for input hash refs] >>
 
@@ -378,7 +378,7 @@ and the C<order> parameter defaults to C<asc>
 
 =head2 Frequency tree
 
-Once all the data have been collected with the L</add>() method,
+Once all the data have been collected with the L<add()|/add> method,
 a C<frequency tree> has been constructed internally.
 
 Suppose the C<Data::Freq> instance is initialized with the two fields as below:
@@ -408,7 +408,7 @@ under its parent category.
 
 The root node maintains the grand total of records that have been added.
 
-The tree structure can be recursively visited by the L</traverse>() method.
+The tree structure can be recursively visited by the L<traverse()|/traverse> method.
 
 Below is an example to generate a HTML:
 
@@ -445,19 +445,19 @@ Usage:
 
     Data::Freq->new($field1, $field2, ...);
 
-Constructs a C<Data::Freq> instance.
+Constructs a C<Data::Freq> object.
 
 The arguments C<$field1>, C<$field2>, etc. are instances of L<Data::Freq::Field>,
 or any valid arguments that can be passed to L<Data::Freq::Field/new>.
 
-The actual data to be analyzed need to be added by the L</add>() method one by one.
+The actual data to be analyzed need to be added by the L<add()|/add> method one by one.
 
 The C<Data::Freq> object maintains the counting results, based on the specified fields.
 The first field (C<$field1>) is used to group the added data into the major category.
 The next subsequent field (C<$field2>) is for the sub-category under each major group.
 Any more subsequent fields are interpreted recursively as sub-sub-category, etc.
 
-If no fields are given to the L</new>() method, one field of the C<text> type will be assumed.
+If no fields are given to the L<new()|/new> method, one field of the C<text> type will be assumed.
 
 =cut
 
@@ -491,7 +491,7 @@ Usage:
 
 Adds a record that increments the counting by 1.
 
-The interpretation of the input depends on the type of fields specified in the L</new>() method.
+The interpretation of the input depends on the type of fields specified in the L<new()|/new> method.
 See L<Data::Freq::Field/evaluate_record>.
 
 =cut
@@ -651,7 +651,7 @@ Usage:
         # Do something with $node after its child nodes
     });
 
-Provides a way to traverse the result tree with more control than the L</output>() method.
+Provides a way to traverse the result tree with more control than the L<output()|/output> method.
 
 A callback must be passed as an argument, and will ba called with the following arguments:
 
@@ -673,7 +673,7 @@ A subroutine ref, with which the resursion is invoked at a desired time
 
 =back
 
-When the L</traverse>() method is called,
+When the L<traverse()|/traverse> method is called,
 the root node is passed as the C<$node> parameter first,
 but B<no> recursion will be invoked automatically
 until the C<$recurse> subroutine is explicitly invoked for the child nodes.
@@ -706,7 +706,7 @@ sub traverse {
 
 Returns the root node of the I<frequency tree>. (See L</frequency tree> for details.)
 
-The root node is created during the L</new>() method call,
+The root node is created during the L<new()|/new> method call,
 and maintains the total number of added records and a reference to its direct child nodes
 for the first field.
 

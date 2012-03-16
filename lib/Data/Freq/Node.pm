@@ -20,18 +20,23 @@ our $VERSION = '0.01';
 
 =head2 new
 
+Usage:
+
+    my $root_node = Data::Freq::Node->new();
+
+Constructs a node object in the L<Data::Freq/frequency tree>.
+
 =cut
 
 sub new {
-	my ($class, $value, $depth) = @_;
-	my $parent = undef;
+	my ($class, $value, $parent) = @_;
 	
 	if (ref $class) {
-		$parent = $class;
+		$parent ||= $class;
 		$class = ref $class;
 	}
 	
-	$depth = 0 unless defined $depth;
+	my $depth = $parent ? ($parent->depth + 1) : 0;
 	
 	return bless {
 		# For this node's own
@@ -53,13 +58,22 @@ sub new {
 
 =head2 add_subnode
 
+Usage:
+
+    my $child_node = $parent_node->add_subnode('normalized text');
+
+Adds a normalized value and returns the corresponding subnode.
+
+If the normalized text appears for the first time under the parent node,
+a new node is created. Otherwise, the existing node is returned with its count
+incremented by 1.
+
 =cut
 
 sub add_subnode {
 	my ($self, $value) = @_;
 	
-	my $child = ($self->children->{$value} ||=
-			$self->new($value, $self->depth + 1));
+	my $child = ($self->children->{$value} ||= $self->new($value, $self));
 	
 	$child->{first} = $self->count if $child->count == 0;
 	$child->{last} = $self->count;
@@ -75,19 +89,44 @@ sub add_subnode {
 
 =head2 count
 
+Retrieves the count for the normalized text.
+
 =head2 value
+
+Retrieves the normalized value.
 
 =head2 parent
 
+Retrieves the parent node in the L<Data::Freq/frequency tree>.
+
+For the root node, C<undef> is returned.
+
 =head2 children
+
+Retrieves a hash ref of the raw counting results under this node,
+where the key is the normalized text and the value is the corresponding subnode.
 
 =head2 max
 
+Retrieves the maximum count value of the child nodes.
+
 =head2 first
+
+Retrieves the first occurrence index of this node under its parent node.
+
+The index is the count of the parent node at the time this child node is created.
 
 =head2 last
 
+Retrieves the last occurrence index of this node under its parent node.
+
+The index is the count of the parent node at the last time this child node is added or created.
+
 =head2 depth
+
+Retrieves the depth in the L<Data::Freq/frequency tree>.
+
+The depth of the root node is 0.
 
 =cut
 
@@ -99,31 +138,6 @@ sub max      {shift->{max     }}
 sub first    {shift->{first   }}
 sub last     {shift->{last    }}
 sub depth    {shift->{depth   }}
-
-=head2 indent
-
-=cut
-
-sub indent {
-	my ($self, $space) = @_;
-	$space = '  ' unless defined $space;
-	return $space x ($self->depth - 1);
-}
-
-=head2 format_count
-
-=cut
-
-sub format_count {
-	my $self = shift;
-	
-	if (my $parent = $self->parent) {
-		my $max = $parent->max;
-		return sprintf('%'.length("$max").'d', $self->count);
-	} else {
-		return $self->count;
-	}
-}
 
 =head1 AUTHOR
 

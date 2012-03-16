@@ -83,16 +83,16 @@ Usage:
     # Hash ref
     Data::Freq::Record->new({key => 'hash ref'});
 
-Instanciates a record object, which carries an input data
+Constructs a record object, which carries an input data
 in the form of a text, an array ref, or a hash ref.
 Each form of the input (or a converted value) can be retrieved
-by the L</text>(), L</array>(), or L</hash>() function.
+by the L<text()|/text>, L<array()|/array>, or L<hash()|/hash> function.
 
 When an array ref is required via the L</array>() method
 while a text is given as the input, the array ref is created internally
-by the L</logsplit>() function.
+by the L<logsplit()|/logsplit> function.
 
-When a text is required via the L</text>() method
+When a text is required via the L<text()|/text> method
 while an array ref is given as the input, the text is taken
 from the first element of the array.
 
@@ -161,7 +161,7 @@ sub text {
 
 Retrieves the array ref form of the input.
 
-If the input was a text, it is split by the L</logsplit>() function..
+If the input was a text, it is split by the L<logsplit()|/logsplit> function..
 
 =cut
 
@@ -195,7 +195,7 @@ Extracts a date/time from the input and returns the timestamp value.
 
 The date/time is retrieved from the array ref form (or from a split text),
 where the first element enclosed by a pair of brackets C<[...]> is
-parsed by the L<Date::Parse/str2time>() function.
+parsed by the L<Date::Parse::str2time()|Date::Parse/str2time> function.
 
 =cut
 

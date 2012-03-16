@@ -25,6 +25,21 @@ use POSIX qw(strftime);
 
 =head2 new
 
+Usage:
+
+    Data::Freq::Field->new({
+        type    => 'text' , # { 'text' | 'number' | 'date' }
+        sort    => 'count', # { 'value' | 'count' | 'first' | 'last' }
+        order   => 'desc' , # { 'asc' | 'desc' }
+        pos     => 0      , # { 0 | 1 | 2 | -1 | -2 | .. | [0, 1, 2] | .. }
+        key     => 'mykey', # { any key(s) for input hash refs }
+        convert => sub {...},
+    });
+
+Constructs a field object.
+
+See L<Data::Freq/field specification> for details.
+
 =cut
 
 sub new {
@@ -85,6 +100,17 @@ sub new {
 
 =head2 evaluate_record
 
+Usage:
+
+    my $field = Data::Freq::Field->new(...);
+    my $record = Data::Freq::Record->new(...);
+    my $normalized_text = $field->evaluate_record($record);
+
+Evaluates an input record as a normalized text that will be used for frequency counting,
+depending on the parameters passed to the L<new()|/new> method.
+
+This is intended to be an internal method for L<Data::Freq>.
+
 =cut
 
 sub evaluate_record {
@@ -123,6 +149,17 @@ sub evaluate_record {
 }
 
 =head2 select_nodes
+
+Usage:
+
+    my $raw_node_list = [values %{$parent_node->children}];
+    my $sorted_node_list = $field->select_nodes($raw_node_list);
+
+Sorts and reduces a list of nodes (Data::Freq::Node) at the corresponding depth
+in the L<frequency tree|Data::Freq/frequency tree>,
+depending on the parameters passed to the L<new()|/new> method.
+
+This is intended to be an internal method for L<Data::Freq>.
 
 =cut
 
