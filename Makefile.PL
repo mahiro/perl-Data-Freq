@@ -8,6 +8,7 @@ WriteMakefile(
     AUTHOR              => q{Mahiro Ando <mahiro@cpan.org>},
     VERSION_FROM        => 'lib/Data/Freq.pm',
     ABSTRACT_FROM       => 'lib/Data/Freq.pm',
+    EXE_FILES           => ['bin/data-freq'],
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
       ? ('LICENSE'=> 'perl')
       : ()),
