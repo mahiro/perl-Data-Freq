@@ -24,23 +24,31 @@ use Pod::Usage qw(pod2usage);
     -t | --text           -y | --year
     -n | --number         -m | --month
     -d | --date | --day   --hour --minute --second
-    +%m-%d +%H +%H:%M etc.
+    
+    +%m-%d +%H +%H:%M etc. | --strftime=FMT
 
 For multiple fields, each C<Field Type Option> begins a next level of
-field specification, so its any more field options belong to it.
+field specification, so its any following field options belong to it.
 
 =head2 Field Selector Options (per field):
 
     -p NUM | --pos=NUM
 
-where NUM can be zero, positive, negative, multiple separated by commas (C<,>),
+C<NUM> can be zero, positive, negative, multiple separated by commas (C<,>),
 and/or a range with a C<..> sign.
 
 =head2 Field Output Options (per field):
 
     -l NUM | --limit=NUM   -o NUM | --offset=NUM
 
-where NUM can be zero, positive, or negative.
+C<NUM> can be zero, positive, or negative.
+
+=head2 Field Scoring Options (per field):
+
+   -U | --unique   -M | --max   -N | --min   -Y | --average
+
+Alters the meaning of what are displayed as C<count> values,
+which are calculated by aggregating the child-level entries.
 
 =head2 Field Sorting Options (per field):
 
@@ -49,35 +57,44 @@ where NUM can be zero, positive, or negative.
 
 =head2 Input Format Options:
 
-    -s STR | --split=STR
+    -b STR | --split=STR
 
 =head2 Output Format Options:
 
-    -I STR | --indent=STR      -G | --with_total
-    -P STR | --prefix=STR      -R | --value_first
-    -S STR | --separator=STR   -O | --no_padding
+    -I STR | --indent=STR      -G | --grand_total
+    -P STR | --prefix=STR      -T | --transpose
+    -B STR | --separator=STR   -O | --no_padding
 
 =head2 Help Options:
 
-    -v | --version   -h | --help   -M | --man
+    -v | --version   -h | --help
+    -k | --check     -a | --man
 
 =head1 OPTION EXAMPLES
 
     # Monthly view counts
-    Long : data-freq --month < access.log
+    Long:  data-freq --month < access.log
     Short: data-freq -m < access.log
     
     # Monthly + Daily
-    Long : data-freq --month --day < access.log
+    Long:  data-freq --month --day < access.log
     Short: data-freq -md < access.log
     
     # Monthly + Top 10 users per month
-    Long : data-freq \
-              --month \
-              --text --pos=2 --limit=10 \
-              access.log
-    Short: data-freq -mt -p2 -l10 access.log
-    Unreadable: data-freq -mtp2l10 access.log
+    Long:  data-freq --month \
+                     --text --pos=2 --limit=10 \
+                     access.log
+    Short: data-freq -m -tp2 -l10 access.log
+    
+    # Top 10 days for the number of distinct users
+    Long:  data-freq --day --unique --count --limit=10 \
+                     --text --pos=2 --limit=0 \
+                     access.log
+    Short: data-freq -dUC -l10 -tp2 -l0 access.log
+    
+    # Hourly aggregation
+    Long:  data-freq --strftime %H
+    Short: data-freq +%H
 
 =head1 DESCRIPTION
 
@@ -140,7 +157,11 @@ sub parse_args {
 		} qw(limit|l=i offset|o=i)),
 		(map {
 			my ($spec, $name) = $normalize_spec->($_);
-			$spec => sub {$field->{sort} = $name};
+			$spec => sub {$field->{score} = $name}
+		} qw(unique|uniq|U max|maximum|M min|minimum|N average|avg|Y)),
+		(map {
+			my ($spec, $name) = $normalize_spec->($_);
+			$spec => sub {$field->{sort} = $name}
 		} qw(value|V count|C first|F last|L)),
 		(map {
 			my ($spec, $name) = $normalize_spec->($_);
@@ -148,21 +169,21 @@ sub parse_args {
 		} qw(asc|ascending|A desc|descending|D)),
 		
 		# Other options
-		'split|s=s' => sub {$input->{split} = $_[1]},
+		'split|b=s' => sub {$input->{split} = $_[1]},
 		(map {
 			my ($spec, $name) = $normalize_spec->($_);
 			$spec => sub {$output->{$name} = $_[1]}
 		} qw(
-			index|I=s prefix|P=s separator|S=s
-			with_total|G value_first|R no_padding|O
+			index|I=s prefix|P=s separator|B=s
+			grand_total|G transpose|T no_padding|O
 		)),
 		'check|k'   => \$check,
 		'version|v' => sub {
 			print "Data::Freq version $Data::Freq::VERSION\n";
 			exit 2;
 		},
-		'help|h|?'  => sub {pod2usage(-verbose => 1, -exitstatus => 2)},
-		'man|M'     => sub {pod2usage(-verbose => 2, -exitstatus => 0)},
+		'help|h|?'  => sub {pod2usage(-verbose => 1, -exitstatus => 0)},
+		'man|a'     => sub {pod2usage(-verbose => 2, -exitstatus => 0)},
 	) or exit 1;
 	
 	if ($check) {
@@ -170,7 +191,7 @@ sub parse_args {
 		my $n = 0;
 		
 		for my $field (@{$data->fields}) {
-			print 'Field: ', ++$n, "\n";
+			print 'Field ', ++$n, ":\n";
 			
 			for my $name (reverse sort keys %$field) {
 				my $value = $field->{$name};
@@ -179,7 +200,7 @@ sub parse_args {
 			}
 		}
 		
-		exit 2;
+		exit 0;
 	}
 	
 	return ($fields, $input, $output);

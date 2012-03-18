@@ -16,6 +16,8 @@ Version 0.01
 
 our $VERSION = '0.01';
 
+use List::Util;
+
 =head1 METHODS
 
 =head2 new
@@ -36,7 +38,12 @@ sub new {
 		$class = ref $class;
 	}
 	
-	my $depth = $parent ? ($parent->depth + 1) : 0;
+	my $depth = 0;
+	
+	if ($parent) {
+		$depth = $parent->depth + 1;
+		$parent->{unique}++;
+	}
 	
 	return bless {
 		# For this node's own
@@ -48,8 +55,7 @@ sub new {
 		children => {},
 		first    => undef,
 		last     => undef,
-		max      => undef,
-		min      => undef,
+		unique   => 0,
 		
 		# Depth from root
 		depth    => $depth,
@@ -72,7 +78,6 @@ incremented by 1.
 
 sub add_subnode {
 	my ($self, $value) = @_;
-	
 	my $child = ($self->children->{$value} ||= $self->new($value, $self));
 	
 	$child->{first} = $self->count if $child->count == 0;
@@ -80,9 +85,22 @@ sub add_subnode {
 	
 	$child->{count}++;
 	
+=begin
 	if (!defined $self->max || $self->max < $child->count) {
 		$self->{max} = $child->count;
 	}
+	
+	if (defined $self->min) {
+		if ($child->count - 1 == $self->min) {
+			if ($self->min_ref == 1) {
+				
+			}
+		}
+	} else {
+		$self->{min} = $child->count;
+		$self->{min_ref} = 1;
+	}
+=cut
 	
 	return $child;
 }
@@ -106,9 +124,21 @@ For the root node, C<undef> is returned.
 Retrieves a hash ref of the raw counting results under this node,
 where the key is the normalized text and the value is the corresponding subnode.
 
+=head2 unique
+
+Retrieves the number of the child nodes.
+
 =head2 max
 
-Retrieves the maximum count value of the child nodes.
+Calculates the maximum count of the child nodes.
+
+=head2 min
+
+Calculates the minimum count of the child nodes.
+
+=head2 average
+
+Calculates the average count of the child nodes.
 
 =head2 first
 
@@ -130,14 +160,17 @@ The depth of the root node is 0.
 
 =cut
 
-sub count    {shift->{count   }}
-sub value    {shift->{value   }}
-sub parent   {shift->{parent  }}
-sub children {shift->{children}}
-sub max      {shift->{max     }}
-sub first    {shift->{first   }}
-sub last     {shift->{last    }}
-sub depth    {shift->{depth   }}
+sub count    {$_[0]->{count   }}
+sub value    {$_[0]->{value   }}
+sub parent   {$_[0]->{parent  }}
+sub children {$_[0]->{children}}
+sub unique   {$_[0]->{unique  }}
+sub max      {List::Util::max(map {$_->count} values %{$_[0]->children})}
+sub min      {List::Util::min(map {$_->count} values %{$_[0]->children})}
+sub average  {$_[0]->unique > 0 ? ($_[0]->count / $_[0]->unique) : undef};
+sub first    {$_[0]->{first   }}
+sub last     {$_[0]->{last    }}
+sub depth    {$_[0]->{depth   }}
 
 =head1 AUTHOR
 

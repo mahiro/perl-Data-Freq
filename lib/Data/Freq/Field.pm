@@ -19,7 +19,7 @@ our $VERSION = '0.01';
 use Carp qw(croak);
 use Date::Parse qw(str2time);
 use Scalar::Util qw(looks_like_number);
-use POSIX qw(strftime);
+require POSIX;
 
 =head1 METHODS
 
@@ -49,7 +49,7 @@ sub new {
 	if (!ref $input) {
 		$self->_extract_any($input) or croak "invalid argument: $input";
 	} elsif (ref $input eq 'HASH') {
-		for my $target (qw(type sort order pos key)) {
+		for my $target (qw(type score sort order pos key)) {
 			if (defined $input->{$target}) {
 				my $method = "_extract_$target";
 				
@@ -81,15 +81,16 @@ sub new {
 		croak "invalid field: $input";
 	}
 	
-	$self->{type} = 'text' unless defined $self->{type};
+	$self->{type} = 'text' unless defined $self->type;
+	$self->{score} ||= 'count';
 	
-	if ($self->{type} eq 'text') {
+	if ($self->type eq 'text') {
 		$self->{sort} ||= 'count';
 	} else {
 		$self->{sort} ||= 'value';
 	}
 	
-	if ($self->{sort} eq 'count') {
+	if ($self->{sort} eq 'count' || $self->{sort} eq 'last') {
 		$self->{order} ||= 'desc';
 	} else {
 		$self->{order} ||= 'asc';
@@ -118,15 +119,15 @@ sub evaluate_record {
 	my $result = undef;
 	
 	TRY: {
-		if (defined $self->{pos}) {
-			my $pos = $self->{pos};
+		if (defined $self->pos) {
+			my $pos = $self->pos;
 			my $array = $record->array or last TRY;
 			$result = "@$array[@$pos]";
-		} elsif (defined $self->{key}) {
-			my $key = $self->{key};
+		} elsif (defined $self->key) {
+			my $key = $self->key;
 			my $hash = $record->hash or last TRY;
 			$result = "@$hash{@$key}";
-		} elsif ($self->{type} eq 'date') {
+		} elsif ($self->type eq 'date') {
 			$result = $record->date;
 		} else {
 			$result = $record->text;
@@ -137,12 +138,12 @@ sub evaluate_record {
 		if ($self->{type} eq 'date') {
 			$result = looks_like_number($result) ? $result : str2time($result);
 			last TRY unless defined $result;
-			$result = strftime($self->{strftime}, localtime $result);
+			$result = POSIX::strftime($self->strftime, localtime $result);
 		}
 	}
 	
-	if ($self->{convert}) {
-		$result = $self->{convert}->($result);
+	if ($self->convert) {
+		$result = $self->convert->($result);
 	}
 	
 	return $result;
@@ -165,39 +166,98 @@ This is intended to be an internal method for L<Data::Freq>.
 
 sub select_nodes {
 	my ($self, $nodes) = @_;
-	my $type  = $self->{type};
-	my $sort  = $self->{sort};
-	my $order = $self->{order};
+	my $type  = $self->type;
+	my $sort  = $self->sort;
+	my $order = $self->order;
 	
-	my @result;
+	if ($sort eq 'count') {
+		$sort = $self->score;
+	}
+	
+	my @tuples = map {[$_, $_->$sort, $_->first]} @$nodes;
 	
 	if ($type ne 'number' && $sort eq 'value') {
 		if ($order eq 'asc') {
-			@result = sort {$a->$sort cmp $b->$sort || $a->first <=> $b->first} @$nodes;
+			@tuples = CORE::sort {$a->[1] cmp $b->[1] || $a->[2] <=> $b->[2]} @tuples;
 		} else {
-			@result = sort {$b->$sort cmp $a->$sort || $a->first <=> $b->first} @$nodes;
+			@tuples = CORE::sort {$b->[1] cmp $a->[1] || $a->[2] <=> $b->[2]} @tuples;
 		}
 	} else {
 		if ($order eq 'asc') {
-			@result = sort {$a->$sort <=> $b->$sort || $a->first <=> $b->first} @$nodes;
+			@tuples = CORE::sort {$a->[1] <=> $b->[1] || $a->[2] <=> $b->[2]} @tuples;
 		} else {
-			@result = sort {$b->$sort <=> $a->$sort || $a->first <=> $b->first} @$nodes;
+			@tuples = CORE::sort {$b->[1] <=> $a->[1] || $a->[2] <=> $b->[2]} @tuples;
 		}
 	}
 	
-	if (defined $self->{offset} || defined $self->{limit}) {
-		my $offset = defined $self->{offset} ? $self->{offset} : 0;
-		my $length = defined $self->{limit} ? $self->{limit} : scalar(@result);
+	my @result = map {$_->[0]} @tuples;
+	
+	if (defined $self->offset || defined $self->limit) {
+		my $offset = defined $self->offset ? $self->offset : 0;
+		my $length = defined $self->limit ? $self->limit : scalar(@result);
 		@result = splice(@result, $offset, $length);
 	}
 	
 	return \@result;
 }
 
+=head2 type
+
+Retrieves the C<type> parameter.
+
+=head2 score
+
+Retrieves the C<score> parameter.
+
+=head2 sort
+
+Retrieves the C<sort> parameter.
+
+=head2 order
+
+Retrieves the C<order> parameter.
+
+=head2 pos
+
+Retrieves the C<pos> parameter as an array ref.
+
+=head2 key
+
+Retrieves the C<key> parameter as an array ref.
+
+=head2 limit
+
+Retrieves the C<limit> parameter.
+
+=head2 offset
+
+Retrieves the C<offset> parameter.
+
+=head2 strftime
+
+Retrieves the C<strftime> parameter (L<POSIX::strftime()|POSIX/strftime>).
+
+=head2 convert
+
+Retrieves the C<convert> parameter.
+
+=cut
+
+sub type     {$_[0]{type    }}
+sub score    {$_[0]{score   }}
+sub sort     {$_[0]{sort    }}
+sub order    {$_[0]{order   }}
+sub pos      {$_[0]{pos     }}
+sub key      {$_[0]{key     }}
+sub limit    {$_[0]{limit   }}
+sub offset   {$_[0]{offset  }}
+sub strftime {$_[0]{strftime}}
+sub convert  {$_[0]{convert }}
+
 sub _extract_any {
 	my ($self, $input) = @_;
 	
-	for my $target (qw(pos type sort order)) {
+	for my $target (qw(pos type score sort order)) {
 		my $method = "_extract_$target";
 		return $self if $self->$method($input);
 	}
@@ -242,6 +302,27 @@ sub _extract_type {
 	} elsif ($input =~ /^(seconds?|time)?$/i) {
 		$self->{type} = 'date';
 		$self->{strftime} = '%F %T';
+		return $self;
+	}
+	
+	return undef;
+}
+
+sub _extract_score {
+	my ($self, $input) = @_;
+	return undef if !defined $input || ref($input) || $input eq '';
+	
+	if ($input =~ /^uniq(ue)?$/) {
+		$self->{score} = 'unique';
+		return $self;
+	} elsif ($input =~ /^max(imum)?$/) {
+		$self->{score} = 'max';
+		return $self;
+	} elsif ($input =~ /^min(imum)?$/) {
+		$self->{score} = 'min';
+		return $self;
+	} elsif ($input =~ /^av(g|e(rage)?)?$/) {
+		$self->{score} = 'average';
 		return $self;
 	}
 	

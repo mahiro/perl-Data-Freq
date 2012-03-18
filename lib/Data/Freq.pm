@@ -97,13 +97,13 @@ If the field specifications are given, e.g.
 then the output will look like this:
 
     123: 2012-01-01
-      100: user1
-       20: user2
-        3: user3
+        100: user1
+         20: user2
+          3: user3
     456: 2012-01-02
-      400: user1
-       50: user2
-        6: user3
+        400: user1
+         50: user2
+          6: user3
     ...
 
 Below is another example along this line:
@@ -115,13 +115,13 @@ Below is another example along this line:
 with the output:
 
     12300: 2012-01
-        123: 2012-01-01
-        456: 2012-01-02
-        789: 2012-01-03
-        ...
+          123: 2012-01-01
+          456: 2012-01-02
+          789: 2012-01-03
+          ...
     45600: 2012-02
-        456: 2012-02-01
-        789: 2012-02-02
+          456: 2012-02-01
+          789: 2012-02-02
         ...
 
 See L</field specification> for more details about the initialization parameters.
@@ -211,12 +211,12 @@ as the default output lines).
 =item * A hash ref of options to control output format
 
     $data->output({
-        with_total  => 0   , # also prints total (root node)
-        value_first => 0   , # prints values before counts
-        indent      => '  ', # repeats (depth - 1) times
-        separator   => ': ', # separates the count and the value
-        prefix      => ''  , # prepended before the count
-        no_padding  => 0   , # disables padding for the count
+        grand_total => 0     , # also prints total (root node)
+        transpose   => 0     , # prints values before counts
+        indent      => '    ', # repeats (depth - 1) times
+        separator   => ': '  , # separates the count and the value
+        prefix      => ''    , # prepended before the count
+        no_padding  => 0     , # disables padding for the count
     });
 
 =item * The format option can be specified together with a file handle.
@@ -226,20 +226,20 @@ as the default output lines).
 =back
 
 The output does not include the grand total by default.
-If the C<with_total> option is set to a true value, the total count will be printed
+If the C<grand_total> option is set to a true value, the total count will be printed
 as the first line (level 0), and all the subsequent levels will be shifted to the right.
 
-The C<value_first> option flips the order of the count and the value in each line. E.g.
+The C<transpose> option flips the order of the count and the value in each line. E.g.
 
     2012-01: 12300
-      2012-01-01: 123
-      2012-01-02: 456
-      2012-01-03: 789
-      ...
+        2012-01-01: 123
+        2012-01-02: 456
+        2012-01-03: 789
+        ...
     2012-02: 45600
-      2012-02-01: 456
-      2012-02-02: 789
-      ...
+        2012-02-01: 456
+        2012-02-02: 789
+        ...
 
 The indent unit (repeated appropriate times) and the separator
 (between the count and the value) can be customized with the respective options,
@@ -250,10 +250,10 @@ and the padding for alignment.
 
 For example, consider the output below:
 
-    12000: Level 1
-       9000: Level 2
-         9000: Level 3
-          5: Level 2
+    1200000: Level 1
+         900000: Level 2
+             900000: Level 3
+              5: Level 2
     ...
 
 where the second "Level 2" appears to have a deeper indent than the "Level 3."
@@ -265,10 +265,10 @@ The indent depth will be clearer if a C<prefix> is added:
 
     $data->output({prefix => '* '});
     
-    * 12000: Level 1
-      *  9000: Level 2
-        *  9000: Level 3
-      *     5: Level 2
+    * 1200000: Level 1
+        *  900000: Level 2
+            *  900000: Level 3
+        *       5: Level 2
     ...
 
 Alternatively, the C<no_padding> option can be set to a true value
@@ -276,10 +276,10 @@ to disable the left padding.
 
     $data->output({no_padding => 1});
     
-    12000: Level 1
-      9000: Level 2
-        9000: Level 3
-      5: Level 2
+    1200000: Level 1
+        900000: Level 2
+            900000: Level 3
+        5: Level 2
     ...
 
 =head2 Field specification
@@ -310,7 +310,7 @@ it is also equivalent to
 
 =over 4
 
-=item * C<< type => ['text' | 'number' | 'date'] >>
+=item * C<< type => { 'text' | 'number' | 'date' } >>
 
 The basic data types are C<'text'>, C<'number'>, and C<'date'>,
 which determine how each input data is normalized for the frequency counting,
@@ -333,7 +333,20 @@ In addition, the keywords below can be used as synonims:
     'minute': equivalent to '%Y-%m-%d %H:%M'
     'second': equivalent to '%Y-%m-%d %H:%M:%S'
 
-=item * C<< sort => ['value' | 'count' | 'first' | 'last'] >>
+=item * << score => { 'unique' | 'max' | 'min' | 'average' } >>
+
+The C<score> parameter alters how each C<count> is calculated,
+where the default C<count> is equal to the sum of all the C<count>'s for its child nodes.
+
+    'unique' : the number of distinct child values
+    'max'    : the maximum count of the child nodes
+    'min'    : the minimum count of the child nodes
+    'average': the average count of the child nodes
+
+The C<score> parameter cannot be given to the periferal field (the last field),
+since there will be no child nodes.
+
+=item * C<< sort => { 'value' | 'count' | 'first' | 'last' } >>
 
 The C<sort> parameter is used as the key by which the group of records
 will be sorted for the output.
@@ -343,18 +356,18 @@ will be sorted for the output.
     'first': sort by the first occurrence in the input
     'last' : sort by the last occurrence in the input
 
-=item * C<< order => ['asc' | 'desc'] >>
+=item * C<< order => { 'asc' | 'desc' } >>
 
 The C<order> parameter controls the sorting in the either ascending or descending order.
 
-=item * C<< pos => [0, 1, 2, -1, -2, ...] >>
+=item * C<< pos => { 0, 1, 2, -1, -2, ... } >>
 
 If the C<pos> parameter is given or an integer value (or a list of integers) is given
 without a parameter name, the value whose frequency is counted will be selected
 at the indices from an array ref input or a text split
 by the L<logsplit()|Data::Freq::Record/logsplit> function.
 
-=item * C<< key => [any key(s) for input hash refs] >>
+=item * C<< key => { any key(s) for input hash refs } >>
 
 If the C<pos> parameter is given, it is assumed that the input is a hash ref,
 where the value whose frequency is counted will be selected by the specified key(s).
@@ -471,6 +484,10 @@ sub new {
 	
 	croak $@ if $@;
 	
+	if ($fields->[-1]->score ne 'count') {
+		croak "Aggregate parameter '".$fields->[-1]->score."' can only be used for non-periferal field";
+	}
+	
 	return bless {
 		root   => Data::Freq::Node->new($ROOT_VALUE),
 		fields => $fields,
@@ -532,12 +549,12 @@ Usage:
     
     # Options
     $data->output({
-        with_total  => 0   , # also prints total (root node)
-        value_first => 0   , # prints values before counts
-        indent      => '  ', # repeats (depth - 1) times
-        separator   => ': ', # separates the count and the value
-        prefix      => ''  , # prepended before the count
-        no_padding  => 0   , # disables padding for the count
+        grand_total => 0   , # also prints total (root node)
+        transpose  => 0   , # prints values before counts
+        indent     => '  ', # repeats (depth - 1) times
+        separator  => ': ', # separates the count and the value
+        prefix     => ''  , # prepended before the count
+        no_padding => 0   , # disables padding for the count
     });
     
     # Combination
@@ -587,38 +604,50 @@ sub output {
 	
 	$opt ||= {};
 	
-	my $indent      = defined $opt->{indent}    ? $opt->{indent}    : '  ';
-	my $prefix      = defined $opt->{prefix}    ? $opt->{prefix}    : '';
+	my $indent      = defined $opt->{indent}    ? $opt->{indent}    : '    ';
+	my $prefix      = defined $opt->{prefix}    ? $opt->{prefix}    : ''  ;
 	my $separator   = defined $opt->{separator} ? $opt->{separator} : ': ';
-	my $with_total  = $opt->{with_total}  ? 1 : 0;
+	my $grand_total = $opt->{grand_total} ? 1 : 0;
 	my $no_padding  = $opt->{no_padding}  ? 1 : 0;
-	my $value_first = $opt->{value_first} ? 1 : 0;
+	my $transpose   = $opt->{transpose}   ? 1 : 0;
 	
 	if (!$callback) {
-		my $maxlen = $with_total ? length($self->root->count) : length($self->root->max);
+		my $maxlen = $grand_total ? length($self->root->count) : length($self->root->max);
+		my $fields = $self->fields;
 		$fh ||= \*STDOUT;
 		
 		$callback = sub {
-			my $node = shift;
+			my ($node, $children, $field) = @_;
 			
-			if ($with_total || $node->depth > 0) {
-				print $fh $indent x ($node->depth - ($with_total ? 0 : 1));
+			if ($grand_total || $node->depth > 0) {
+				print $fh $indent x ($node->depth - ($grand_total ? 0 : 1));
 				print $fh $prefix;
 				
-				if ($value_first) {
-					print $fh $node->value;
-				} elsif ($no_padding) {
-					print $fh $node->count;
+				my $value = $node->value;
+				my $count;
+				
+				if ($node->depth > 0) {
+					my $parent_field = $fields->[$node->depth - 1];
+					my $score = $parent_field->{score};
+					$count = $node->$score;
 				} else {
-					printf $fh '%'.$maxlen.'d', $node->count;
+					$count = $node->count;
+				}
+				
+				if ($transpose) {
+					print $fh $value;
+				} elsif ($no_padding) {
+					print $fh $count;
+				} else {
+					printf $fh '%'.$maxlen.'d', $count;
 				}
 				
 				print $fh $separator;
 				
-				if ($value_first) {
-					print $fh $node->count;
+				if ($transpose) {
+					print $fh $count;
 				} else {
-					print $fh $node->value;
+					print $fh $value;
 				}
 				
 				print $fh "\n";
@@ -627,8 +656,8 @@ sub output {
 	}
 	
 	$self->traverse(sub {
-		my ($node, $children, $recurse) = @_;
-		$callback->($node, $children);
+		my ($node, $children, $recurse, $field) = @_;
+		$callback->($node, $children, $field);
 		$recurse->($_) foreach @$children;
 	});
 }
@@ -674,9 +703,9 @@ A subroutine ref, with which the resursion is invoked at a desired time
 =back
 
 When the L<traverse()|/traverse> method is called,
-the root node is passed as the C<$node> parameter first,
-but B<no> recursion will be invoked automatically
-until the C<$recurse> subroutine is explicitly invoked for the child nodes.
+the root node is passed as the C<$node> parameter first.
+Until the C<$recurse> subroutine is explicitly invoked for the child nodes,
+B<no> recursion will be invoked automatically.
 
 =cut
 
@@ -690,13 +719,14 @@ sub traverse {
 	$recurse = sub {
 		my $node = shift;
 		my $children = [];
+		my $field = $fields->[$node->depth];
 		
-		if (my $field = $fields->[$node->depth]) {
+		if ($field) {
 			$children = [values %{$node->children}];
 			$children = $field->select_nodes($children);
 		}
 		
-		$callback->($node, $children, $recurse);
+		$callback->($node, $children, $recurse, $field);
 	};
 	
 	$recurse->($self->root);

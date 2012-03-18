@@ -172,18 +172,18 @@ SKIP: {
 			
 			my $i = 0;
 			is $chunks[$i++], ' 60: 2012-01';
-			is $chunks[$i++], '   45: ghi';
-			is $chunks[$i++], '   10: abc';
-			is $chunks[$i++], '    5: def';
+			is $chunks[$i++], '     45: ghi';
+			is $chunks[$i++], '     10: abc';
+			is $chunks[$i++], '      5: def';
 			is $chunks[$i++], '  5: 2012-02';
-			is $chunks[$i++], '    2: jkl';
-			is $chunks[$i++], '    1: abc';
-			is $chunks[$i++], '    1: ghi';
-			is $chunks[$i++], '    1: mno';
+			is $chunks[$i++], '      2: jkl';
+			is $chunks[$i++], '      1: abc';
+			is $chunks[$i++], '      1: ghi';
+			is $chunks[$i++], '      1: mno';
 			is $chunks[$i++], '120: 2012-03';
-			is $chunks[$i++], '  115: def';
-			is $chunks[$i++], '    3: ghi';
-			is $chunks[$i++], '    2: abc';
+			is $chunks[$i++], '    115: def';
+			is $chunks[$i++], '      3: ghi';
+			is $chunks[$i++], '      2: abc';
 			is scalar(@chunks), $i;
 		};
 		
@@ -193,27 +193,27 @@ SKIP: {
 			my $result;
 			
 			$data->output(IO::String->new($result), {
-				with_total => 1, no_padding => 1,
-				indent => '    ', prefix => '- ', separator => ' => ',
+				grand_total => 1, no_padding => 1,
+				indent => '   ', prefix => '- ', separator => ' => ',
 			});
 			
 			my @chunks = split /\n/, $result;
 			
 			my $i = 0;
 			is $chunks[$i++], '- 185 => Total';
-			is $chunks[$i++], '    - 60 => 2012-01';
-			is $chunks[$i++], '        - 45 => ghi';
-			is $chunks[$i++], '        - 10 => abc';
-			is $chunks[$i++], '        - 5 => def';
-			is $chunks[$i++], '    - 5 => 2012-02';
-			is $chunks[$i++], '        - 2 => jkl';
-			is $chunks[$i++], '        - 1 => abc';
-			is $chunks[$i++], '        - 1 => ghi';
-			is $chunks[$i++], '        - 1 => mno';
-			is $chunks[$i++], '    - 120 => 2012-03';
-			is $chunks[$i++], '        - 115 => def';
-			is $chunks[$i++], '        - 3 => ghi';
-			is $chunks[$i++], '        - 2 => abc';
+			is $chunks[$i++], '   - 60 => 2012-01';
+			is $chunks[$i++], '      - 45 => ghi';
+			is $chunks[$i++], '      - 10 => abc';
+			is $chunks[$i++], '      - 5 => def';
+			is $chunks[$i++], '   - 5 => 2012-02';
+			is $chunks[$i++], '      - 2 => jkl';
+			is $chunks[$i++], '      - 1 => abc';
+			is $chunks[$i++], '      - 1 => ghi';
+			is $chunks[$i++], '      - 1 => mno';
+			is $chunks[$i++], '   - 120 => 2012-03';
+			is $chunks[$i++], '      - 115 => def';
+			is $chunks[$i++], '      - 3 => ghi';
+			is $chunks[$i++], '      - 2 => abc';
 			is scalar(@chunks), $i;
 		};
 	};
