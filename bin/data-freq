@@ -27,8 +27,7 @@ use Pod::Usage qw(pod2usage);
     
     +%m-%d +%H +%H:%M etc. | --strftime=FMT
 
-For multiple fields, each C<Field Type Option> begins a next level of
-field specification, so its any following field options belong to it.
+For multiple fields, each C<Field Type Option> begins new field specification.
 
 =head2 Field Selector Options (per field):
 
@@ -68,29 +67,29 @@ which are calculated by aggregating the child-level entries.
 =head2 Help Options:
 
     -v | --version   -h | --help
-    -k | --check     -a | --man
+    -c | --check     -a | --man
 
 =head1 OPTION EXAMPLES
 
     # Monthly view counts
-    Long:  data-freq --month < access.log
-    Short: data-freq -m < access.log
+    Long:  data-freq --month < access_log
+    Short: data-freq -m < access_log
     
     # Monthly + Daily
-    Long:  data-freq --month --day < access.log
-    Short: data-freq -md < access.log
+    Long:  data-freq --month --day < access_log
+    Short: data-freq -md < access_log
     
-    # Monthly + Top 10 users per month
+    # Monthly + Top 3 users per month
     Long:  data-freq --month \
-                     --text --pos=2 --limit=10 \
-                     access.log
-    Short: data-freq -m -tp2 -l10 access.log
+                     --text --pos=2 --limit=3 \
+                     access_log
+    Short: data-freq -m -tp2 -l3 access_log
     
-    # Top 10 days for the number of distinct users
-    Long:  data-freq --day --unique --count --limit=10 \
+    # Top 5 days for the number of distinct users
+    Long:  data-freq --day --unique --count --limit=5 \
                      --text --pos=2 --limit=0 \
-                     access.log
-    Short: data-freq -dUC -l10 -tp2 -l0 access.log
+                     access_log
+    Short: data-freq -dUC -l5 -tp2 -l0 access_log
     
     # Hourly aggregation
     Long:  data-freq --strftime %H
@@ -98,7 +97,198 @@ which are calculated by aggregating the child-level entries.
 
 =head1 DESCRIPTION
 
+=head2 Overview
+
 C<data-freq> is a command line tool to analyze frequency of particular types of text data.
+
+For example, consider an input file:
+
+    Abc Def
+    Def Ghi
+    Ghi Jkl
+    Abc Def
+    Def Ghi
+    Abc Def
+
+The command can be executed as below:
+
+    data-freq filename
+    (or)
+    data-freq < filename
+
+Then the output will be
+
+    3: Abc Def
+    2: Def Ghi
+    1: Ghi Jkl
+
+where the number on the left indicates how many times each line of text appeared in the input.
+
+=head2 Log file analysis
+
+This tool is designed especially in favor of log file analysis.
+
+A typical log file for the Apache web server consists of lines like this:
+
+    1.2.3.4 - user1 [01/Jan/2012:01:02:03 +0000] "GET / HTTP/1.1" 200 12
+
+One of the simplest examples for such a log file is
+
+    data-freq --month /var/log/httpd/access_log
+
+which will yield something like this:
+
+    12300: 2012-01
+    23400: 2012-02
+    34500: 2012-03
+
+Note the date/time information is automatically extracted from the first chunk of text
+that is enclosed by a pair of brackets C<[...]>.
+
+If the access log file is very large, it is recommended to do some experiment for a part of the log
+until satisfactory options are determined. E.g.
+
+    tail -1000 /var/log/httpd/access_log | \
+        data-freq --[several different options]
+
+In order to select a specific field from the log line, use the C<--pos> option:
+
+    # Count IP addresses
+    data-freq --pos=0 < access_log
+    (or)
+    data-freq -p0 < access_log
+    
+    # Count remote usernames
+    data-freq --pos=2 < access_log
+    (or)
+    data-freq -p2 < access_log
+
+If the C<--pos> option is used, it is regarded as the 0-based index
+for the array of words in each input line.
+
+In order to determine the words, the input line is split by whitespaces,
+while any chunk enclosed by a pair of brackets C<[...]>, braces C<{...}>, parentheses C<(...)>,
+double quotes C<"...">, or single quotes C<'...'> is grouped as one word,
+even if it contains whitespaces.
+
+=head2 Multi-level analysis
+
+C<data-freq> is capable of aggregating frequency data at multiple levels.
+
+E.g.
+
+    data-freq --month --day < access_log
+    (or)
+    data-freq -md < access_log
+
+where C<--month> is for the first level, and C<--day> is for the second level.
+
+The output will look something like this:
+
+    12300: 2012-01
+          210: 2012-01-01
+          321: 2012-01-02
+          432: 2012-01-03
+          ...
+    23400: 2012-02
+          321: 2012-02-01
+          432: 2012-02-02
+          543: 2012-02-03
+          ...
+    34500: 2012-03
+          543: 2012-02-01
+          654: 2012-02-02
+          765: 2012-02-03
+          ...
+
+Below is another example to list top 3 users per month:
+
+    data-freq --month --text --pos=2 --limit=3 < access_log
+    (or)
+    data-freq -m -tp2 -l3 < access_log
+
+Note: Although C<--text> is a default field type and can usually be omitted,
+the C<field type option> is required to indicate where the specification of
+the second level begins in the command line.
+(Otherwise, C<--pos> would be incorrectly associated with the first field of
+the C<--month> type.)
+
+Output:
+
+    12300: 2012-01
+         1200: user1
+          230: user2
+          135: user3
+    23400: 2012-02
+         2400: user1
+         1122: user4
+          765: user3
+    34500: 2012-03
+         3600: user2
+         2100: user3
+         1350: user1
+
+Note: the dates are sorted by the time-line order,
+while the users are sorted by the count.
+
+=head2 Sorting results
+
+The output can be sorted on the per-field basis by the attributes below.
+
+    --count: sorts by the count (left-hand side numbers)
+    --value: sorts by the value (right-hand side texts)
+    --first: sorts by the first occurrence in the input
+    --last : sorts by the last occurrence in the input
+
+In addition, the direction of the order can be controlled by
+the C<--asc> and C<--desc> options, for the ascending and descending orders, respectively.
+
+If the sorting and/or ordering options above are omitted,
+the default sorting method will be determined as follows.
+
+1. If the field type is C<--text>, the output will be sorted by C<--count> by default
+(i.e. the most frequent text first).
+Otherwise (if the field type is either C<--number> or any kind of C<--date>),
+the output will be sorted by C<--value> by default
+(i.e. the number-line or time-line order).
+
+2. If the sorting type is either C<--count> or C<--last>,
+the output will be sorted in the descending order by default.
+Otherwise, the default is the ascending order.
+
+=head2 Counting unique values
+
+Below is an example to show top 5 days for the number of distinct users:
+
+    data-freq --day --unique --count --limit=5 \
+              --text --pos=2 --limit=0 \
+              access_log
+    (or)
+    data-freq -dUC -l5 -tp2 -l0 access_log
+
+where C<--day> is the daily aggregate for the first level,
+and C<--text --pos=2> is for the usernames per day.
+
+The C<--unique> option makes the first field count the number of
+unique usernames rather than the total occurrences.
+
+The C<--count> option is to sort the first field by the count (unique users)
+rather than by the date itself, and then the top 5 days will be printed out
+with C<--limit=5>.
+
+The C<--limit=0> option for the second field hides all the individual usernames,
+since the purpose here is to find dates rather than users.
+
+As a result, the output will look like
+
+    1100: 2012-03-05
+     860: 2012-02-20
+     789: 2012-02-13
+     641: 2012-03-12
+     580: 2012-02-27
+
+where each number on the left is the number of unique users on each day,
+and these days are the top 5 among others.
 
 =cut
 
@@ -177,7 +367,7 @@ sub parse_args {
 			index|I=s prefix|P=s separator|B=s
 			grand_total|G transpose|T no_padding|O
 		)),
-		'check|k'   => \$check,
+		'check|c'   => \$check,
 		'version|v' => sub {
 			print "Data::Freq version $Data::Freq::VERSION\n";
 			exit 2;

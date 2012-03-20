@@ -316,7 +316,7 @@ The basic data types are C<'text'>, C<'number'>, and C<'date'>,
 which determine how each input data is normalized for the frequency counting,
 and how the results are sorted.
 
-The C<'date'> type can also be written as the format string for L<POSIX::strftime()|POSIX/strftime> function.
+The C<'date'> type can also be written as the format string for L<POSIX::strftime()> function.
 
     Data::Freq->new('%Y-%m');
     
@@ -612,7 +612,7 @@ sub output {
 	my $transpose   = $opt->{transpose}   ? 1 : 0;
 	
 	if (!$callback) {
-		my $maxlen = $grand_total ? length($self->root->count) : length($self->root->max);
+		my $maxlen = $grand_total ? length($self->root->count) : length($self->root->max || '');
 		my $fields = $self->fields;
 		$fh ||= \*STDOUT;
 		
