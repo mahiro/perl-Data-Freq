@@ -49,7 +49,7 @@ sub new {
 	if (!ref $input) {
 		$self->_extract_any($input) or croak "invalid argument: $input";
 	} elsif (ref $input eq 'HASH') {
-		for my $target (qw(type score sort order pos key)) {
+		for my $target (qw(type method sort order pos key)) {
 			if (defined $input->{$target}) {
 				my $method = "_extract_$target";
 				
@@ -82,15 +82,15 @@ sub new {
 	}
 	
 	$self->{type} = 'text' unless defined $self->type;
-	$self->{score} ||= 'count';
+	$self->{method} ||= 'count';
 	
 	if ($self->type eq 'text') {
-		$self->{sort} ||= 'count';
+		$self->{sort} ||= 'score';
 	} else {
 		$self->{sort} ||= 'value';
 	}
 	
-	if ($self->{sort} eq 'count' || $self->{sort} eq 'last') {
+	if ($self->{sort} =~ /^(count|score|last)$/) {
 		$self->{order} ||= 'desc';
 	} else {
 		$self->{order} ||= 'asc';
@@ -135,7 +135,7 @@ sub evaluate_record {
 		
 		last TRY unless defined $result;
 		
-		if ($self->{type} eq 'date') {
+		if ($self->type eq 'date') {
 			$result = looks_like_number($result) ? $result : str2time($result);
 			last TRY unless defined $result;
 			$result = POSIX::strftime($self->strftime, localtime $result);
@@ -165,13 +165,17 @@ This is intended to be an internal method for L<Data::Freq>.
 =cut
 
 sub select_nodes {
-	my ($self, $nodes) = @_;
+	my ($self, $nodes, $subfield) = @_;
 	my $type  = $self->type;
 	my $sort  = $self->sort;
 	my $order = $self->order;
 	
-	if ($sort eq 'count') {
-		$sort = $self->score;
+	if ($sort eq 'score') {
+		if ($subfield) {
+			$sort = $subfield->method;
+		} else {
+			$sort = 'count';
+		}
 	}
 	
 	my @tuples = map {[$_, $_->$sort, $_->first]} @$nodes;
@@ -205,9 +209,9 @@ sub select_nodes {
 
 Retrieves the C<type> parameter.
 
-=head2 score
+=head2 method
 
-Retrieves the C<score> parameter.
+Retrieves the C<method> parameter.
 
 =head2 sort
 
@@ -244,7 +248,7 @@ Retrieves the C<convert> parameter.
 =cut
 
 sub type     {$_[0]{type    }}
-sub score    {$_[0]{score   }}
+sub method   {$_[0]{method  }}
 sub sort     {$_[0]{sort    }}
 sub order    {$_[0]{order   }}
 sub pos      {$_[0]{pos     }}
@@ -257,7 +261,7 @@ sub convert  {$_[0]{convert }}
 sub _extract_any {
 	my ($self, $input) = @_;
 	
-	for my $target (qw(pos type score sort order)) {
+	for my $target (qw(pos type method sort order)) {
 		my $method = "_extract_$target";
 		return $self if $self->$method($input);
 	}
@@ -308,21 +312,21 @@ sub _extract_type {
 	return undef;
 }
 
-sub _extract_score {
+sub _extract_method {
 	my ($self, $input) = @_;
 	return undef if !defined $input || ref($input) || $input eq '';
 	
 	if ($input =~ /^uniq(ue)?$/) {
-		$self->{score} = 'unique';
+		$self->{method} = 'unique';
 		return $self;
 	} elsif ($input =~ /^max(imum)?$/) {
-		$self->{score} = 'max';
+		$self->{method} = 'max';
 		return $self;
 	} elsif ($input =~ /^min(imum)?$/) {
-		$self->{score} = 'min';
+		$self->{method} = 'min';
 		return $self;
 	} elsif ($input =~ /^av(g|e(rage)?)?$/) {
-		$self->{score} = 'average';
+		$self->{method} = 'average';
 		return $self;
 	}
 	
@@ -338,6 +342,9 @@ sub _extract_sort {
 		return $self;
 	} elsif ($input =~ /^counts?$/i) {
 		$self->{sort} = 'count';
+		return $self;
+	} elsif ($input =~ /^scores?$/i) {
+		$self->{sort} = 'score';
 		return $self;
 	} elsif ($input =~ /^(first|occur(rence)?s?)$/i) {
 		$self->{sort} = 'first';

@@ -22,7 +22,7 @@ use Pod::Usage qw(pod2usage);
 =head2 Field Type Options (per field):
 
     -t | --text           -y | --year
-    -n | --number         -m | --month
+    -u | --number         -m | --month
     -d | --date | --day   --hour --minute --second
     
     +%m-%d +%H +%H:%M etc. | --strftime=FMT
@@ -38,7 +38,8 @@ and/or a range with a C<..> sign.
 
 =head2 Field Output Options (per field):
 
-    -l NUM | --limit=NUM   -o NUM | --offset=NUM
+    -n NUM | --limit=NUM    -z | --zero
+    -o NUM | --offset=NUM
 
 C<NUM> can be zero, positive, or negative.
 
@@ -52,7 +53,7 @@ which are calculated by aggregating the child-level entries.
 =head2 Field Sorting Options (per field):
 
     -V | --value   -F | --first   -A | --asc
-    -C | --count   -L | --last    -D | --desc
+    -S | --score   -L | --last    -D | --desc
 
 =head2 Input Format Options:
 
@@ -83,13 +84,13 @@ which are calculated by aggregating the child-level entries.
     Long:  data-freq --month \
                      --text --pos=2 --limit=3 \
                      access_log
-    Short: data-freq -m -tp2 -l3 access_log
+    Short: data-freq -m -tp2 -n3 access_log
     
     # Top 5 days for the number of distinct users
-    Long:  data-freq --day --count --limit=5 \
-                     --text --pos=2 --unique --limit=0 \
+    Long:  data-freq --day --score --limit=5 \
+                     --text --pos=2 --unique --zero \
                      access_log
-    Short: data-freq -dC -l5 -tp2 -U -l0 access_log
+    Short: data-freq -dS -n5 -tp2 -Uz access_log
     
     # Hourly aggregation
     Long:  data-freq --strftime %H
@@ -205,7 +206,7 @@ Below is another example to list top 3 users per month:
 
     data-freq --month --text --pos=2 --limit=3 < access_log
     (or)
-    data-freq -m -tp2 -l3 < access_log
+    data-freq -m -tp2 -n3 < access_log
 
 Note: Although C<--text> is a default field type and can usually be omitted,
 the C<field type option> is required to indicate where the specification of
@@ -235,7 +236,7 @@ while the users are sorted by the count.
 
 The output can be sorted on the per-field basis by the attributes below.
 
-    --count: sorts by the count (left-hand side numbers)
+    --score: sorts by the score (left-hand side numbers)
     --value: sorts by the value (right-hand side texts)
     --first: sorts by the first occurrence in the input
     --last : sorts by the last occurrence in the input
@@ -246,13 +247,13 @@ the C<--asc> and C<--desc> options, for the ascending and descending orders, res
 If the sorting and/or ordering options above are omitted,
 the default sorting method will be determined as follows.
 
-1. If the field type is C<--text>, the output will be sorted by C<--count> by default
+1. If the field type is C<--text>, the output will be sorted by C<--score> by default
 (i.e. the most frequent text first).
 Otherwise (if the field type is either C<--number> or any kind of C<--date>),
 the output will be sorted by C<--value> by default
 (i.e. the number-line or time-line order).
 
-2. If the sorting type is either C<--count> or C<--last>,
+2. If the sorting type is either C<--score> or C<--last>,
 the output will be sorted in the descending order by default.
 Otherwise, the default is the ascending order.
 
@@ -260,24 +261,23 @@ Otherwise, the default is the ascending order.
 
 Below is an example to show top 5 days for the number of distinct users:
 
-    data-freq --day --count --limit=5 \
-              --text --pos=2 --unique --limit=0 \
+    data-freq --day --score --limit=5 \
+              --text --pos=2 --unique --zero \
               access_log
     (or)
-    data-freq -dC -l5 -tp2 -U -l0 access_log
+    data-freq -dS -n5 -tp2 -Uz access_log
 
 where C<--day> is the daily aggregate for the first level,
 and C<--text --pos=2> is for the usernames per day.
 
-The C<--count> option is to sort the first field by the count (unique users)
+The C<--score> option is to sort the first field by the score (unique users)
 rather than by the date itself, and then the top 5 days will be printed out
 with C<--limit=5>.
 
 The C<--unique> option makes the first field count the number of
-unique usernames rather than the total number of occurrences.
-
-The C<--limit=0> option for the second field hides all the individual usernames,
-since the purpose here is to find dates rather than users.
+unique usernames rather than the total number of occurrences,
+while the C<--zero> option for the second field hides all the individual usernames,
+since the purpose here is to list dates rather than users.
 
 As a result, the output will look like
 
@@ -331,7 +331,7 @@ sub parse_args {
 				$field->{type} = $name;
 			}
 		} qw(
-			text|t number|n date|d
+			text|t number|u date|d
 			year|y month|m day hour minute second
 		)),
 		'strftime=s' => sub {
@@ -344,15 +344,16 @@ sub parse_args {
 		(map {
 			my ($spec, $name) = $normalize_spec->($_);
 			$spec => sub {$field->{$name} = $_[1]}
-		} qw(limit|l=i offset|o=i)),
+		} qw(limit|n=i offset|o=i)),
+		'zero|z' => sub {$field->{limit} = 0},
 		(map {
 			my ($spec, $name) = $normalize_spec->($_);
-			$spec => sub {$field->{score} = $name}
+			$spec => sub {$field->{method} = $name}
 		} qw(unique|uniq|U max|maximum|M min|minimum|N average|avg|Y)),
 		(map {
 			my ($spec, $name) = $normalize_spec->($_);
 			$spec => sub {$field->{sort} = $name}
-		} qw(value|V count|C first|F last|L)),
+		} qw(value|V score|S first|F last|L)),
 		(map {
 			my ($spec, $name) = $normalize_spec->($_);
 			$spec => sub {$field->{order} = $name}
@@ -385,7 +386,13 @@ sub parse_args {
 			
 			for my $name (reverse sort keys %$field) {
 				my $value = $field->{$name};
-				$value = 'sub {...}' if ref $value eq 'CODE';
+				
+				if (ref $value eq 'CODE') {
+					$value = 'sub {...}';
+				} elsif (ref $value eq 'ARRAY') {
+					$value = '['.join(', ', @$value).']';
+				}
+				
 				print "  $name: $value\n";
 			}
 		}

@@ -13,7 +13,7 @@ subtest default => sub {
 	my $field = Data::Freq::Field->new();
 	
 	is(ref($field), 'Data::Freq::Field');
-	is_deeply($field, {type => 'text', score => 'count', sort => 'count', order => 'desc'});
+	is_deeply($field, {type => 'text', method => 'count', sort => 'score', order => 'desc'});
 };
 
 subtest simple_type => sub {
@@ -44,19 +44,19 @@ subtest simple_type => sub {
 	is_deeply([map {Data::Freq::Field->new('seconds')->$_} qw(type strftime)], ['date', '%F %T'   ]);
 };
 
-subtest simple_score => sub {
+subtest simple_method => sub {
 	plan tests => 10;
 	
-	is(Data::Freq::Field->new('uniq'   )->score, 'unique');
-	is(Data::Freq::Field->new('unique' )->score, 'unique');
-	is(Data::Freq::Field->new('max'    )->score, 'max');
-	is(Data::Freq::Field->new('maximum')->score, 'max');
-	is(Data::Freq::Field->new('min'    )->score, 'min');
-	is(Data::Freq::Field->new('minimum')->score, 'min');
-	is(Data::Freq::Field->new('av'     )->score, 'average');
-	is(Data::Freq::Field->new('ave'    )->score, 'average');
-	is(Data::Freq::Field->new('avg'    )->score, 'average');
-	is(Data::Freq::Field->new('average')->score, 'average');
+	is(Data::Freq::Field->new('uniq'   )->method, 'unique');
+	is(Data::Freq::Field->new('unique' )->method, 'unique');
+	is(Data::Freq::Field->new('max'    )->method, 'max');
+	is(Data::Freq::Field->new('maximum')->method, 'max');
+	is(Data::Freq::Field->new('min'    )->method, 'min');
+	is(Data::Freq::Field->new('minimum')->method, 'min');
+	is(Data::Freq::Field->new('av'     )->method, 'average');
+	is(Data::Freq::Field->new('ave'    )->method, 'average');
+	is(Data::Freq::Field->new('avg'    )->method, 'average');
+	is(Data::Freq::Field->new('average')->method, 'average');
 };
 
 subtest simple_sort => sub {
@@ -105,10 +105,10 @@ subtest hash_1 => sub {
 	is_deeply(Data::Freq::Field->new({pos => 1})->pos, [1]);
 	is_deeply(Data::Freq::Field->new({key => 'foo'})->key, ['foo']);
 	
-	is(Data::Freq::Field->new({score => 'unique' })->score, 'unique');
-	is(Data::Freq::Field->new({score => 'max' })->score, 'max');
-	is(Data::Freq::Field->new({score => 'min' })->score, 'min');
-	is(Data::Freq::Field->new({score => 'average' })->score, 'average');
+	is(Data::Freq::Field->new({method => 'unique' })->method, 'unique');
+	is(Data::Freq::Field->new({method => 'max' })->method, 'max');
+	is(Data::Freq::Field->new({method => 'min' })->method, 'min');
+	is(Data::Freq::Field->new({method => 'average' })->method, 'average');
 	
 	is(Data::Freq::Field->new({sort => 'count' })->sort, 'count');
 	is(Data::Freq::Field->new({sort => 'value' })->sort, 'value');
@@ -166,34 +166,36 @@ subtest default_type => sub {
 	is_deeply([map {Data::Freq::Field->new(['count', 'asc', [1..3]])->$_} qw(type sort order pos)], ['text', 'count', 'asc', [1, 2, 3]]);
 };
 
-subtest default_score => sub {
+subtest default_method => sub {
 	plan tests => 4;
 	
-	is(Data::Freq::Field->new()->score, 'count');
-	is(Data::Freq::Field->new('number')->score, 'count');
-	is(Data::Freq::Field->new('date')->score, 'count');
-	is(Data::Freq::Field->new({sort => 'value'})->score, 'count');
+	is(Data::Freq::Field->new()->method, 'count');
+	is(Data::Freq::Field->new('number')->method, 'count');
+	is(Data::Freq::Field->new('date')->method, 'count');
+	is(Data::Freq::Field->new({sort => 'value'})->method, 'count');
 };
 
 subtest default_sort => sub {
-	plan tests => 22;
+	plan tests => 25;
 	
-	is_deeply([map {Data::Freq::Field->new()->$_} qw(type sort order)], ['text', 'count', 'desc']);
+	is_deeply([map {Data::Freq::Field->new()->$_} qw(type sort order)], ['text', 'score', 'desc']);
 	
-	is_deeply([map {Data::Freq::Field->new('text'  )->$_} qw(type sort order)], ['text'  , 'count', 'desc']);
+	is_deeply([map {Data::Freq::Field->new('text'  )->$_} qw(type sort order)], ['text'  , 'score', 'desc']);
 	is_deeply([map {Data::Freq::Field->new('number')->$_} qw(type sort order)], ['number', 'value', 'asc' ]);
 	is_deeply([map {Data::Freq::Field->new('date'  )->$_} qw(type sort order)], ['date'  , 'value', 'asc' ]);
 	
 	is_deeply([map {Data::Freq::Field->new(['text', 'value'])->$_} qw(type sort order)], ['text', 'value', 'asc' ]);
 	is_deeply([map {Data::Freq::Field->new(['text', 'count'])->$_} qw(type sort order)], ['text', 'count', 'desc']);
+	is_deeply([map {Data::Freq::Field->new(['text', 'score'])->$_} qw(type sort order)], ['text', 'score', 'desc']);
 	is_deeply([map {Data::Freq::Field->new(['text', 'first'])->$_} qw(type sort order)], ['text', 'first', 'asc' ]);
 	is_deeply([map {Data::Freq::Field->new(['text', 'last' ])->$_} qw(type sort order)], ['text', 'last' , 'desc']);
 	
-	is_deeply([map {Data::Freq::Field->new(['text', 'asc'  ])->$_} qw(type sort order)], ['text', 'count', 'asc' ]);
-	is_deeply([map {Data::Freq::Field->new(['text', 'desc' ])->$_} qw(type sort order)], ['text', 'count', 'desc']);
+	is_deeply([map {Data::Freq::Field->new(['text', 'asc'  ])->$_} qw(type sort order)], ['text', 'score', 'asc' ]);
+	is_deeply([map {Data::Freq::Field->new(['text', 'desc' ])->$_} qw(type sort order)], ['text', 'score', 'desc']);
 	
 	is_deeply([map {Data::Freq::Field->new(['number', 'value'])->$_} qw(type sort order)], ['number', 'value', 'asc' ]);
 	is_deeply([map {Data::Freq::Field->new(['number', 'count'])->$_} qw(type sort order)], ['number', 'count', 'desc']);
+	is_deeply([map {Data::Freq::Field->new(['number', 'score'])->$_} qw(type sort order)], ['number', 'score', 'desc']);
 	is_deeply([map {Data::Freq::Field->new(['number', 'first'])->$_} qw(type sort order)], ['number', 'first', 'asc' ]);
 	is_deeply([map {Data::Freq::Field->new(['number', 'last' ])->$_} qw(type sort order)], ['number', 'last' , 'desc']);
 	
@@ -202,6 +204,7 @@ subtest default_sort => sub {
 	
 	is_deeply([map {Data::Freq::Field->new(['date', 'value'])->$_} qw(type sort order)], ['date', 'value', 'asc' ]);
 	is_deeply([map {Data::Freq::Field->new(['date', 'count'])->$_} qw(type sort order)], ['date', 'count', 'desc']);
+	is_deeply([map {Data::Freq::Field->new(['date', 'score'])->$_} qw(type sort order)], ['date', 'score', 'desc']);
 	is_deeply([map {Data::Freq::Field->new(['date', 'first'])->$_} qw(type sort order)], ['date', 'first', 'asc' ]);
 	is_deeply([map {Data::Freq::Field->new(['date', 'last' ])->$_} qw(type sort order)], ['date', 'last' , 'desc']);
 	

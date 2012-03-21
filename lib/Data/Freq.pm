@@ -333,18 +333,15 @@ In addition, the keywords below can be used as synonims:
     'minute': equivalent to '%Y-%m-%d %H:%M'
     'second': equivalent to '%Y-%m-%d %H:%M:%S'
 
-=item * << score => { 'unique' | 'max' | 'min' | 'average' } >>
+=item * << method => { 'unique' | 'max' | 'min' | 'average' } >>
 
-The C<score> parameter alters how each C<count> is calculated,
+The C<method> parameter alters how each C<count> is calculated,
 where the default C<count> is equal to the sum of all the C<count>'s for its child nodes.
 
     'unique' : the number of distinct child values
     'max'    : the maximum count of the child nodes
     'min'    : the minimum count of the child nodes
     'average': the average count of the child nodes
-
-The C<score> parameter cannot be given to the periferal field (the last field),
-since there will be no child nodes.
 
 =item * C<< sort => { 'value' | 'count' | 'first' | 'last' } >>
 
@@ -612,7 +609,7 @@ sub output {
 		$fh ||= \*STDOUT;
 		
 		$callback = sub {
-			my ($node, $children, $field) = @_;
+			my ($node, $children, $field, $subfield) = @_;
 			
 			if ($grand_total || $node->depth > 0) {
 				print $fh $indent x ($node->depth - ($grand_total ? 0 : 1));
@@ -621,8 +618,8 @@ sub output {
 				my $value = $node->value;
 				my $count;
 				
-				if (my $score = $field->{score}) {
-					$count = $node->$score;
+				if ($field and my $method = $field->method) {
+					$count = $node->$method;
 				} else {
 					$count = $node->count;
 				}
@@ -713,13 +710,14 @@ sub traverse {
 		my $node = shift;
 		my $children = [];
 		my $field = $fields->[$node->depth];
+		my $subfield = $fields->[$node->depth + 1];
 		
 		if ($field) {
 			$children = [values %{$node->children}];
-			$children = $field->select_nodes($children);
+			$children = $field->select_nodes($children, $subfield);
 		}
 		
-		$callback->($node, $children, $recurse, $field);
+		$callback->($node, $children, $recurse, $field, $subfield);
 	};
 	
 	$recurse->($self->root);
