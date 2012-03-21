@@ -484,10 +484,6 @@ sub new {
 	
 	croak $@ if $@;
 	
-	if ($fields->[-1]->score ne 'count') {
-		croak "Aggregate parameter '".$fields->[-1]->score."' can only be used for non-periferal field";
-	}
-	
 	return bless {
 		root   => Data::Freq::Node->new($ROOT_VALUE),
 		fields => $fields,
@@ -613,7 +609,6 @@ sub output {
 	
 	if (!$callback) {
 		my $maxlen = $grand_total ? length($self->root->count) : length($self->root->max || '');
-		my $fields = $self->fields;
 		$fh ||= \*STDOUT;
 		
 		$callback = sub {
@@ -626,9 +621,7 @@ sub output {
 				my $value = $node->value;
 				my $count;
 				
-				if ($node->depth > 0) {
-					my $parent_field = $fields->[$node->depth - 1];
-					my $score = $parent_field->{score};
+				if (my $score = $field->{score}) {
 					$count = $node->$score;
 				} else {
 					$count = $node->count;

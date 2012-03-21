@@ -86,10 +86,10 @@ which are calculated by aggregating the child-level entries.
     Short: data-freq -m -tp2 -l3 access_log
     
     # Top 5 days for the number of distinct users
-    Long:  data-freq --day --unique --count --limit=5 \
-                     --text --pos=2 --limit=0 \
+    Long:  data-freq --day --count --limit=5 \
+                     --text --pos=2 --unique --limit=0 \
                      access_log
-    Short: data-freq -dUC -l5 -tp2 -l0 access_log
+    Short: data-freq -dC -l5 -tp2 -U -l0 access_log
     
     # Hourly aggregation
     Long:  data-freq --strftime %H
@@ -260,21 +260,21 @@ Otherwise, the default is the ascending order.
 
 Below is an example to show top 5 days for the number of distinct users:
 
-    data-freq --day --unique --count --limit=5 \
-              --text --pos=2 --limit=0 \
+    data-freq --day --count --limit=5 \
+              --text --pos=2 --unique --limit=0 \
               access_log
     (or)
-    data-freq -dUC -l5 -tp2 -l0 access_log
+    data-freq -dC -l5 -tp2 -U -l0 access_log
 
 where C<--day> is the daily aggregate for the first level,
 and C<--text --pos=2> is for the usernames per day.
 
-The C<--unique> option makes the first field count the number of
-unique usernames rather than the total occurrences.
-
 The C<--count> option is to sort the first field by the count (unique users)
 rather than by the date itself, and then the top 5 days will be printed out
 with C<--limit=5>.
+
+The C<--unique> option makes the first field count the number of
+unique usernames rather than the total number of occurrences.
 
 The C<--limit=0> option for the second field hides all the individual usernames,
 since the purpose here is to find dates rather than users.
