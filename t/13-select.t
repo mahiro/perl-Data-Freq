@@ -102,7 +102,7 @@ subtest sort_unique => sub {
 	my $nodes = [values %$children];
 	
 	my $field;
-	my $subfield = Data::Freq::Field->new({type => 'text', method => 'unique'});
+	my $subfield = Data::Freq::Field->new({type => 'text', aggregate => 'unique'});
 	
 	$field = Data::Freq::Field->new({type => 'text', sort => 'score', order => 'asc'});
 	is_deeply($field->select_nodes($nodes, $subfield), [map {$children->{$_}} qw(c a b)]);
@@ -128,7 +128,7 @@ subtest sort_min_max => sub {
 	my $field;
 	my $subfield;
 	
-	$subfield = Data::Freq::Field->new({type => 'text', method => 'max'});
+	$subfield = Data::Freq::Field->new({type => 'text', aggregate => 'max'});
 	{
 		$field = Data::Freq::Field->new({type => 'text', sort => 'score', order => 'asc'});
 		is_deeply($field->select_nodes($nodes, $subfield), [map {$children->{$_}} qw(b a c)]);
@@ -137,7 +137,7 @@ subtest sort_min_max => sub {
 		is_deeply($field->select_nodes($nodes, $subfield), [map {$children->{$_}} qw(c a b)]);
 	}
 	
-	$subfield = Data::Freq::Field->new({type => 'text', method => 'min'});
+	$subfield = Data::Freq::Field->new({type => 'text', aggregate => 'min'});
 	{
 		$field = Data::Freq::Field->new({type => 'text', sort => 'score', order => 'asc'});
 		is_deeply($field->select_nodes($nodes, $subfield), [map {$children->{$_}} qw(a b c)]);
@@ -162,7 +162,7 @@ subtest sort_average => sub {
 	my $nodes = [values %$children];
 	
 	my $field;
-	my $subfield = Data::Freq::Field->new({type => 'text', method => 'average'});
+	my $subfield = Data::Freq::Field->new({type => 'text', aggregate => 'average'});
 	
 	$field = Data::Freq::Field->new({type => 'text', sort => 'score', order => 'asc'});
 	is_deeply($field->select_nodes($nodes, $subfield), [map {$children->{$_}} qw(b a c)]);

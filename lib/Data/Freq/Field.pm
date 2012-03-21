@@ -49,7 +49,7 @@ sub new {
 	if (!ref $input) {
 		$self->_extract_any($input) or croak "invalid argument: $input";
 	} elsif (ref $input eq 'HASH') {
-		for my $target (qw(type method sort order pos key)) {
+		for my $target (qw(type aggregate sort order pos key)) {
 			if (defined $input->{$target}) {
 				my $method = "_extract_$target";
 				
@@ -82,7 +82,7 @@ sub new {
 	}
 	
 	$self->{type} = 'text' unless defined $self->type;
-	$self->{method} ||= 'count';
+	$self->{aggregate} ||= 'count';
 	
 	if ($self->type eq 'text') {
 		$self->{sort} ||= 'score';
@@ -172,7 +172,7 @@ sub select_nodes {
 	
 	if ($sort eq 'score') {
 		if ($subfield) {
-			$sort = $subfield->method;
+			$sort = $subfield->aggregate;
 		} else {
 			$sort = 'count';
 		}
@@ -209,9 +209,9 @@ sub select_nodes {
 
 Retrieves the C<type> parameter.
 
-=head2 method
+=head2 aggregate
 
-Retrieves the C<method> parameter.
+Retrieves the C<aggregate> parameter.
 
 =head2 sort
 
@@ -247,21 +247,21 @@ Retrieves the C<convert> parameter.
 
 =cut
 
-sub type     {$_[0]{type    }}
-sub method   {$_[0]{method  }}
-sub sort     {$_[0]{sort    }}
-sub order    {$_[0]{order   }}
-sub pos      {$_[0]{pos     }}
-sub key      {$_[0]{key     }}
-sub limit    {$_[0]{limit   }}
-sub offset   {$_[0]{offset  }}
-sub strftime {$_[0]{strftime}}
-sub convert  {$_[0]{convert }}
+sub type      {$_[0]{type    }}
+sub aggregate {$_[0]{aggregate}}
+sub sort      {$_[0]{sort    }}
+sub order     {$_[0]{order   }}
+sub pos       {$_[0]{pos     }}
+sub key       {$_[0]{key     }}
+sub limit     {$_[0]{limit   }}
+sub offset    {$_[0]{offset  }}
+sub strftime  {$_[0]{strftime}}
+sub convert   {$_[0]{convert }}
 
 sub _extract_any {
 	my ($self, $input) = @_;
 	
-	for my $target (qw(pos type method sort order)) {
+	for my $target (qw(pos type aggregate sort order)) {
 		my $method = "_extract_$target";
 		return $self if $self->$method($input);
 	}
@@ -312,21 +312,21 @@ sub _extract_type {
 	return undef;
 }
 
-sub _extract_method {
+sub _extract_aggregate {
 	my ($self, $input) = @_;
 	return undef if !defined $input || ref($input) || $input eq '';
 	
 	if ($input =~ /^uniq(ue)?$/) {
-		$self->{method} = 'unique';
+		$self->{aggregate} = 'unique';
 		return $self;
 	} elsif ($input =~ /^max(imum)?$/) {
-		$self->{method} = 'max';
+		$self->{aggregate} = 'max';
 		return $self;
 	} elsif ($input =~ /^min(imum)?$/) {
-		$self->{method} = 'min';
+		$self->{aggregate} = 'min';
 		return $self;
 	} elsif ($input =~ /^av(g|e(rage)?)?$/) {
-		$self->{method} = 'average';
+		$self->{aggregate} = 'average';
 		return $self;
 	}
 	

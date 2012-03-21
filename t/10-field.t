@@ -13,7 +13,7 @@ subtest default => sub {
 	my $field = Data::Freq::Field->new();
 	
 	is(ref($field), 'Data::Freq::Field');
-	is_deeply($field, {type => 'text', method => 'count', sort => 'score', order => 'desc'});
+	is_deeply($field, {type => 'text', aggregate => 'count', sort => 'score', order => 'desc'});
 };
 
 subtest simple_type => sub {
@@ -44,19 +44,19 @@ subtest simple_type => sub {
 	is_deeply([map {Data::Freq::Field->new('seconds')->$_} qw(type strftime)], ['date', '%F %T'   ]);
 };
 
-subtest simple_method => sub {
+subtest simple_aggregate => sub {
 	plan tests => 10;
 	
-	is(Data::Freq::Field->new('uniq'   )->method, 'unique');
-	is(Data::Freq::Field->new('unique' )->method, 'unique');
-	is(Data::Freq::Field->new('max'    )->method, 'max');
-	is(Data::Freq::Field->new('maximum')->method, 'max');
-	is(Data::Freq::Field->new('min'    )->method, 'min');
-	is(Data::Freq::Field->new('minimum')->method, 'min');
-	is(Data::Freq::Field->new('av'     )->method, 'average');
-	is(Data::Freq::Field->new('ave'    )->method, 'average');
-	is(Data::Freq::Field->new('avg'    )->method, 'average');
-	is(Data::Freq::Field->new('average')->method, 'average');
+	is(Data::Freq::Field->new('uniq'   )->aggregate, 'unique');
+	is(Data::Freq::Field->new('unique' )->aggregate, 'unique');
+	is(Data::Freq::Field->new('max'    )->aggregate, 'max');
+	is(Data::Freq::Field->new('maximum')->aggregate, 'max');
+	is(Data::Freq::Field->new('min'    )->aggregate, 'min');
+	is(Data::Freq::Field->new('minimum')->aggregate, 'min');
+	is(Data::Freq::Field->new('av'     )->aggregate, 'average');
+	is(Data::Freq::Field->new('ave'    )->aggregate, 'average');
+	is(Data::Freq::Field->new('avg'    )->aggregate, 'average');
+	is(Data::Freq::Field->new('average')->aggregate, 'average');
 };
 
 subtest simple_sort => sub {
@@ -105,10 +105,10 @@ subtest hash_1 => sub {
 	is_deeply(Data::Freq::Field->new({pos => 1})->pos, [1]);
 	is_deeply(Data::Freq::Field->new({key => 'foo'})->key, ['foo']);
 	
-	is(Data::Freq::Field->new({method => 'unique' })->method, 'unique');
-	is(Data::Freq::Field->new({method => 'max' })->method, 'max');
-	is(Data::Freq::Field->new({method => 'min' })->method, 'min');
-	is(Data::Freq::Field->new({method => 'average' })->method, 'average');
+	is(Data::Freq::Field->new({aggregate => 'unique' })->aggregate, 'unique');
+	is(Data::Freq::Field->new({aggregate => 'max' })->aggregate, 'max');
+	is(Data::Freq::Field->new({aggregate => 'min' })->aggregate, 'min');
+	is(Data::Freq::Field->new({aggregate => 'average' })->aggregate, 'average');
 	
 	is(Data::Freq::Field->new({sort => 'count' })->sort, 'count');
 	is(Data::Freq::Field->new({sort => 'value' })->sort, 'value');
@@ -166,13 +166,13 @@ subtest default_type => sub {
 	is_deeply([map {Data::Freq::Field->new(['count', 'asc', [1..3]])->$_} qw(type sort order pos)], ['text', 'count', 'asc', [1, 2, 3]]);
 };
 
-subtest default_method => sub {
+subtest default_aggregate => sub {
 	plan tests => 4;
 	
-	is(Data::Freq::Field->new()->method, 'count');
-	is(Data::Freq::Field->new('number')->method, 'count');
-	is(Data::Freq::Field->new('date')->method, 'count');
-	is(Data::Freq::Field->new({sort => 'value'})->method, 'count');
+	is(Data::Freq::Field->new()->aggregate, 'count');
+	is(Data::Freq::Field->new('number')->aggregate, 'count');
+	is(Data::Freq::Field->new('date')->aggregate, 'count');
+	is(Data::Freq::Field->new({sort => 'value'})->aggregate, 'count');
 };
 
 subtest default_sort => sub {

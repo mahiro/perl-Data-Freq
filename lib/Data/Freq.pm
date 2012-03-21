@@ -333,9 +333,9 @@ In addition, the keywords below can be used as synonims:
     'minute': equivalent to '%Y-%m-%d %H:%M'
     'second': equivalent to '%Y-%m-%d %H:%M:%S'
 
-=item * << method => { 'unique' | 'max' | 'min' | 'average' } >>
+=item * << aggregate => { 'unique' | 'max' | 'min' | 'average' } >>
 
-The C<method> parameter alters how each C<count> is calculated,
+The C<aggregate> parameter alters how each C<count> is calculated,
 where the default C<count> is equal to the sum of all the C<count>'s for its child nodes.
 
     'unique' : the number of distinct child values
@@ -618,8 +618,8 @@ sub output {
 				my $value = $node->value;
 				my $count;
 				
-				if ($field and my $method = $field->method) {
-					$count = $node->$method;
+				if ($field and my $aggregate = $field->aggregate) {
+					$count = $node->$aggregate;
 				} else {
 					$count = $node->count;
 				}
