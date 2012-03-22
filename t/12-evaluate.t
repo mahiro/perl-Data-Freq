@@ -19,9 +19,10 @@ subtest text => sub {
 };
 
 subtest number => sub {
-	plan tests => 3;
+	plan tests => 4;
 	my $field = Data::Freq::Field->new('number');
 	is $field->evaluate_record(Data::Freq::Record->new(123)), 123;
+	is $field->evaluate_record(Data::Freq::Record->new("123 456 789")), 123;
 	is $field->evaluate_record(Data::Freq::Record->new([10, 20, 30])), 10;
 	is $field->evaluate_record(Data::Freq::Record->new({1 => 2, 3 => 4})), undef;
 };

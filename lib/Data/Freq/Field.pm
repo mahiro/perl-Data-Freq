@@ -129,6 +129,9 @@ sub evaluate_record {
 			$result = "@$hash{@$key}";
 		} elsif ($self->type eq 'date') {
 			$result = $record->date;
+		} elsif ($self->type eq 'number') {
+			my $array = $record->array or last TRY;
+			$result = $array->[0];
 		} else {
 			$result = $record->text;
 		}
