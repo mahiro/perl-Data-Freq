@@ -43,12 +43,12 @@ and/or a range with a C<..> sign.
 
 C<NUM> can be zero, positive, or negative.
 
-=head2 Field Scoring Options (per field):
+=head2 Field Aggregate Options (per field):
 
    -U | --unique   -M | --max   -N | --min   -Y | --average
 
-Alters the meaning of what are displayed as C<count> values,
-which are calculated by aggregating the child-level entries.
+Alters the meaning of what are displayed as the C<score> of each entry,
+which is calculated by aggregating the child-level entries.
 
 =head2 Field Sorting Options (per field):
 
@@ -208,12 +208,6 @@ Below is another example to list top 3 users per month:
     (or)
     data-freq -m -tp2 -n3 < access_log
 
-Note: Although C<--text> is a default field type and can usually be omitted,
-the C<field type option> is required to indicate where the specification of
-the second level begins in the command line.
-(Otherwise, C<--pos> would be incorrectly associated with the first field of
-the C<--month> type.)
-
 Output:
 
     12300: 2012-01
@@ -232,6 +226,72 @@ Output:
 Note: the dates are sorted by the time-line order,
 while the users are sorted by the count.
 
+=head2 Field types
+
+Below are the basic three field types:
+
+    --text  : texts are counted as they appear in the input
+    --number: texts are normalized as numeric values
+    --date  : texts are parsed as date/time
+
+=over 4
+
+=item * --text
+
+Each line in the input is added as a text entry
+so that its frequency is counted.
+If the C<--pos> option is given, each line is split into words,
+and only the selected word(s) at the position are counted.
+
+=item * --number
+
+The input is interpreted as numbers,
+which affects the sorting order in the output.
+C<--pos> option should usually be given, but if it is omitted,
+the first word is used as the input number.
+
+=item * --date
+
+The input is parsed as date/time and formatted
+based on the L<strftime(3)> format.
+The default format is C<%Y-%m-%d> which looks like C<2001-02-03>.
+Unless C<--pos> option is explicitly given,
+the first word enclosed by a pair of brackets C<[...]>
+in the input line is automatically detected.
+
+The date/time format can be specified with the C<--strftime> option,
+or a plus sign C<+> followed by the format is interpreted as the C<--strftime> option.
+E.g.
+
+    --strftime=%m-%d
+    (or)
+    +%m-%d
+
+The options below can be used as shortcuts for the date/time format:
+
+    --year  : '%Y'
+    --month : '%Y-%m'
+    --day   : '%Y-%m-%d'
+    --hour  : '%Y-%m-%d %H'
+    --minute: '%Y-%m-%d %H:%M'
+    --second: '%Y-%m-%d %H:%M:%S'
+
+=back
+
+In order to place multiple field specifications,
+each of the C<field type> option indicates the beginning of the group of options
+that belong to the same field.
+
+The default type is C<--text> and it can be omitted for the first field,
+but cannot be omitted from the second field on.
+
+    data-freq --text --pos=2 # correct
+    data-freq --pos=2        # ok
+    
+    data-freq --text --pos=2 --text --pos=0 # correct
+    data-freq --pos=2 --text --pos=0        # ok
+    data-freq --pos=2 --pos=0               # incorrect
+
 =head2 Sorting results
 
 The output can be sorted on the per-field basis by the attributes below.
@@ -241,7 +301,7 @@ The output can be sorted on the per-field basis by the attributes below.
     --first: sorts by the first occurrence in the input
     --last : sorts by the last occurrence in the input
 
-In addition, the direction of the order can be controlled by
+The direction of the order can be controlled by
 the C<--asc> and C<--desc> options, for the ascending and descending orders, respectively.
 
 If the sorting and/or ordering options above are omitted,
@@ -270,14 +330,14 @@ Below is an example to show top 5 days for the number of distinct users:
 where C<--day> is the daily aggregate for the first level,
 and C<--text --pos=2> is for the usernames per day.
 
-The C<--score> option is to sort the first field by the score (unique users)
+The C<--score> option is to sort the first field by the score (unique usernames)
 rather than by the date itself, and then the top 5 days will be printed out
 with C<--limit=5>.
 
 The C<--unique> option makes the first field count the number of
-unique usernames rather than the total number of occurrences,
+unique usernames instead of the total number of occurrences,
 while the C<--zero> option for the second field hides all the individual usernames,
-since the purpose here is to list dates rather than users.
+since the only purpose here is to list the dates.
 
 As a result, the output will look like
 
