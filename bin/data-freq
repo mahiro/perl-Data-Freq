@@ -19,7 +19,9 @@ use Pod::Usage qw(pod2usage);
 
 =head1 OPTIONS
 
-=head2 Field Type Options (per field):
+=over 4
+
+=item * Field Type
 
     -t | --text           -y | --year
     -u | --number         -m | --month
@@ -29,78 +31,86 @@ use Pod::Usage qw(pod2usage);
 
 For multiple fields, each C<Field Type Option> begins new field specification.
 
-=head2 Field Selector Options (per field):
+=item * Field Selector
 
     -p NUM | --pos=NUM
 
 C<NUM> can be zero, positive, negative, multiple separated by commas (C<,>),
-and/or a range with a C<..> sign.
+and/or a range with a C<..> operator.
 
-=head2 Field Output Options (per field):
+=item * Field Output
 
     -n NUM | --limit=NUM    -z | --zero
     -o NUM | --offset=NUM
 
 C<NUM> can be zero, positive, or negative.
 
-=head2 Field Aggregate Options (per field):
+=item * Field Aggregation
 
-   -U | --unique   -M | --max   -N | --min   -Y | --average
+    -U | --unique   -M | --max   -N | --min   -Y | --average
 
-Alters the meaning of what are displayed as the C<score> of each entry,
-which is calculated by aggregating the child-level entries.
-
-=head2 Field Sorting Options (per field):
+=item * Field Sorting
 
     -V | --value   -F | --first   -A | --asc
     -S | --score   -L | --last    -D | --desc
 
-=head2 Input Format Options:
+=item * Input Format
 
     -b STR | --split=STR
 
-=head2 Output Format Options:
+=item * Output Format
 
-    -I STR | --indent=STR      -G | --grand_total
+    -I STR | --indent=STR      -R | --root
     -P STR | --prefix=STR      -T | --transpose
-    -B STR | --separator=STR   -O | --no_padding
+    -B STR | --separator=STR   -O | --nopadding
 
-=head2 Help Options:
+=item * Help
 
-    -v | --version   -h | --help
-    -c | --check     -a | --man
+    -v | --version   -h | --help   -a | --man   -c | --check
+
+=back
 
 =head1 OPTION EXAMPLES
 
-    # Monthly view counts
+=over 4
+
+=item * Monthly view counts
+
     Long:  data-freq --month < access_log
     Short: data-freq -m < access_log
-    
-    # Monthly + Daily
+
+=item * Monthly + Daily
+
     Long:  data-freq --month --day < access_log
     Short: data-freq -md < access_log
-    
-    # Monthly + Top 3 users per month
+
+=item * Monthly + Top 3 users per month
+
     Long:  data-freq --month \
                      --text --pos=2 --limit=3 \
                      access_log
     Short: data-freq -m -tp2 -n3 access_log
-    
-    # Top 5 days for the number of distinct users
+
+=item * Top 5 days in the number of distinct users
+
     Long:  data-freq --day --score --limit=5 \
                      --text --pos=2 --unique --zero \
                      access_log
     Short: data-freq -dS -n5 -tp2 -Uz access_log
-    
-    # Hourly aggregation
+
+=item * Hourly aggregation
+
     Long:  data-freq --strftime %H
     Short: data-freq +%H
+
+=back
 
 =head1 DESCRIPTION
 
 =head2 Overview
 
 C<data-freq> is a command line tool to analyze frequency of particular types of text data.
+It is based on the corresponding Perl module L<Data::Freq>.
 
 For example, consider an input file:
 
@@ -123,7 +133,7 @@ Then the output will be
     2: Def Ghi
     1: Ghi Jkl
 
-where the number on the left indicates how many times each line of text appeared in the input.
+where the number on the left indicates how many times each line of text appears in the input.
 
 =head2 Log file analysis
 
@@ -228,11 +238,7 @@ while the users are sorted by the count.
 
 =head2 Field types
 
-Below are the basic three field types:
-
-    --text  : texts are counted as they appear in the input
-    --number: texts are normalized as numeric values
-    --date  : texts are parsed as date/time
+There are three basic field types as below:
 
 =over 4
 
@@ -240,6 +246,7 @@ Below are the basic three field types:
 
 Each line in the input is added as a text entry
 so that its frequency is counted.
+
 If the C<--pos> option is given, each line is split into words,
 and only the selected word(s) at the position are counted.
 
@@ -247,17 +254,19 @@ and only the selected word(s) at the position are counted.
 
 The input is interpreted as numbers,
 which affects the sorting order in the output.
+
 C<--pos> option should usually be given, but if it is omitted,
 the first word is used as the input number.
 
 =item * --date
 
 The input is parsed as date/time and formatted
-based on the L<strftime(3)> format.
+based on the L<POSIX::strftime()> format.
 The default format is C<%Y-%m-%d> which looks like C<2001-02-03>.
+
 Unless C<--pos> option is explicitly given,
-the first word enclosed by a pair of brackets C<[...]>
-in the input line is automatically detected.
+the first field enclosed by a pair of brackets C<[...]>
+in the input line is automatically parsed.
 
 The date/time format can be specified with the C<--strftime> option,
 or a plus sign C<+> followed by the format is interpreted as the C<--strftime> option.
@@ -294,18 +303,44 @@ but cannot be omitted from the second field on.
 
 =head2 Sorting results
 
-The output can be sorted on the per-field basis by the attributes below.
+The output can be sorted on the per-field basis by the attributes below:
 
-    --score: sorts by the score (left-hand side numbers)
-    --value: sorts by the value (right-hand side texts)
-    --first: sorts by the first occurrence in the input
-    --last : sorts by the last occurrence in the input
+=over 4
 
-The direction of the order can be controlled by
-the C<--asc> and C<--desc> options, for the ascending and descending orders, respectively.
+=item * --score
+
+Sorts by the score (left-hand side numbers).
+
+=item * --value
+
+Sorts by the value (right-hand side texts).
+
+=item * --first
+
+Sorts by the first occurrence in the input.
+
+=item * --last
+
+Sorts by the last occurrence in the input.
+
+=back
+
+The direction of the order can be controlled by these respective options:
+
+=over 4
+
+=item * --asc
+
+Sorts in the ascending order
+
+=item * --desc
+
+Sorts in the descending order
+
+=back
 
 If the sorting and/or ordering options above are omitted,
-the default sorting method will be determined as follows.
+the default sorting method will be determined as follows:
 
 1. If the field type is C<--text>, the output will be sorted by C<--score> by default
 (i.e. the most frequent text first).
@@ -317,9 +352,36 @@ the output will be sorted by C<--value> by default
 the output will be sorted in the descending order by default.
 Otherwise, the default is the ascending order.
 
-=head2 Counting unique values
+=head2 Aggregating subcategory
 
-Below is an example to show top 5 days for the number of distinct users:
+If one of the aggregation options below is given to a field,
+it alters the meaning of what is displayed as the score of its parent field.
+
+Without the aggregation, the frequency of each field is counted independently,
+where the parent field count is usually equal to the sum of the child field counts.
+The aggregation options use the method instead of scoring the sum.
+
+=over 4
+
+=item * --unique
+
+Scores the number of distinct values.
+
+=item * --max
+
+Scores the maximum count.
+
+=item * --min
+
+Scores the minimum count.
+
+=item * --average
+
+Scores the average count.
+
+=back
+
+Below is an example to show top 5 days in the number of distinct users:
 
     data-freq --day --score --limit=5 \
               --text --pos=2 --unique --zero \
@@ -348,7 +410,130 @@ As a result, the output will look like
      580: 2012-02-27
 
 where each number on the left is the number of unique users on each day,
-and these days are the top 5 among others.
+and the listed dates are the top 5 among others.
+
+=head2 Input format
+
+=over 4
+
+=item * --split
+
+Specifies the field separator for each of the input lines.
+
+For example, in order to analyze a CSV file,
+
+    data-freq --split=, --pos=2 < input.csv
+
+will count the third field in each line.
+
+=back
+
+=head2 Output format
+
+There are a number of ways to control the output format.
+
+=over 4
+
+=item * --indent
+
+Alters the indent spaces (or any other characters) that repeat as many times as
+the depth (minus 1) at each field level. E.g.
+
+    data-freq --indent=++
+
+will output something like this:
+
+    21: AAA
+    ++12: BBB
+    ++++10: CCC
+    ++++ 2: DDD
+    ++ 9: EEE
+    ++++ 6: FFF
+    ++++ 3: GGG
+
+=item * --prefix
+
+Prepends a prefix between the indent and the score value.
+
+Example:
+
+   data-freq --prefix='* '
+
+Output:
+
+    * 21: AAA
+        * 12: BBB
+            * 10: CCC
+            *  2: DDD
+        *  9: EEE
+            *  6: FFF
+            *  3: GGG
+
+=item * --separator
+
+Sets the separator between the score and the counted text.
+
+Example:
+
+    data-freq --separator=' => '
+
+Output:
+
+    21 => AAA
+        12 => BBB
+            10 => CCC
+             2 => DDD
+         9 => EEE
+             6 => FFF
+             3 => GGG
+
+=item * --root
+
+Also displays the grand total at the level 0.
+All the subsequent levels are shifted to the right.
+
+    34: Total
+        21: AAA
+            12: BBB
+                10: CCC
+                 2: DDD
+             9: EEE
+                 6: FFF
+                 3: GGG
+        13: HHH
+            13: III
+                12: JJJ
+                 1: KKK
+
+=item * --transpose
+
+Swaps the position of the score and the counted text.
+
+    AAA: 21
+        BBB: 12
+            CCC: 10
+            DDD: 2
+        EEE: 9
+            FFF: 6
+            GGG: 3
+
+=item * --nopadding
+
+Suppresses the space padding to the left,
+which is by default for the alignment of the counted texts.
+
+    21: AAA
+        12: BBB
+            10: CCC
+            2: DDD
+        9: EEE
+            6: FFF
+            3: GGG
+
+Note: the indent space above is strictly fixed as multiple of 4 spaces,
+while the texts at the same level may not be aligned.
+
+=back
 
 =cut
 
@@ -370,15 +555,17 @@ sub parse_args {
 	
 	my $normalize_spec = sub {
 		my $spec = $_[0];
-		(my $name = $spec) =~ s/\|.*//;
+		my $name = $spec;
+		$name =~ s/\|.*//;
+		$name =~ s/-/_/g;
 		return ($spec, $name);
 	};
 	
 	Getopt::Long::Configure('bundling');
 	
-	my $field = {};
+	my $field  = {};
 	my $fields = [$field];
-	my $input = {};
+	my $input  = {};
 	my $output = {};
 	my $check;
 	
@@ -426,7 +613,7 @@ sub parse_args {
 			$spec => sub {$output->{$name} = $_[1]}
 		} qw(
 			index|I=s prefix|P=s separator|B=s
-			grand_total|G transpose|T no_padding|O
+			with-root|root|R transpose|T no-padding|nopadding|O
 		)),
 		'check|c'   => \$check,
 		'version|v' => sub {

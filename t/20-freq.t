@@ -193,7 +193,7 @@ SKIP: {
 			my $result;
 			
 			$data->output(IO::String->new($result), {
-				grand_total => 1, no_padding => 1,
+				with_root => 1, no_padding => 1,
 				indent => '   ', prefix => '- ', separator => ' => ',
 			});
 			

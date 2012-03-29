@@ -74,10 +74,9 @@ It will generate a report that looks something like this:
 where the left column shows the number of occurrences of each date.
 
 The date/time value is automatically extracted from the log line,
-where the first date/time parsable field enclosed by a pair of brackets C<[...]>
-is detected.
+where the first field enclosed by a pair of brackets C<[...]>
+is parsed as a date/time text by the L<Date::Parse/str2time> function.
 
-The date/time string is parsed by the L<Date::Parse/str2time> function.
 See also L<Data::Freq::Record/logsplit>.
 
 =head2 Multi-level counting
@@ -211,7 +210,7 @@ as the default output lines).
 =item * A hash ref of options to control output format
 
     $data->output({
-        grand_total => 0     , # also prints total (root node)
+        with_root => 0     , # also prints total (root node)
         transpose   => 0     , # prints values before counts
         indent      => '    ', # repeats (depth - 1) times
         separator   => ': '  , # separates the count and the value
@@ -226,7 +225,7 @@ as the default output lines).
 =back
 
 The output does not include the grand total by default.
-If the C<grand_total> option is set to a true value, the total count will be printed
+If the C<with_root> option is set to a true value, the total count will be printed
 as the first line (level 0), and all the subsequent levels will be shifted to the right.
 
 The C<transpose> option flips the order of the count and the value in each line. E.g.
@@ -333,7 +332,7 @@ In addition, the keywords below can be used as synonims:
     'minute': equivalent to '%Y-%m-%d %H:%M'
     'second': equivalent to '%Y-%m-%d %H:%M:%S'
 
-=item * << aggregate => { 'unique' | 'max' | 'min' | 'average' } >>
+=item * C<< aggregate => { 'unique' | 'max' | 'min' | 'average' } >>
 
 The C<aggregate> parameter alters how each C<count> is calculated,
 where the default C<count> is equal to the sum of all the C<count>'s for its child nodes.
@@ -542,12 +541,12 @@ Usage:
     
     # Options
     $data->output({
-        grand_total => 0   , # also prints total (root node)
-        transpose  => 0   , # prints values before counts
+        with_root  => 0   , # if true, prints total at root
+        transpose  => 0   , # if true, prints values before counts
         indent     => '  ', # repeats (depth - 1) times
         separator  => ': ', # separates the count and the value
         prefix     => ''  , # prepended before the count
-        no_padding => 0   , # disables padding for the count
+        no_padding => 0   , # if true, disables padding for the count
     });
     
     # Combination
@@ -597,22 +596,22 @@ sub output {
 	
 	$opt ||= {};
 	
-	my $indent      = defined $opt->{indent}    ? $opt->{indent}    : '    ';
-	my $prefix      = defined $opt->{prefix}    ? $opt->{prefix}    : ''  ;
-	my $separator   = defined $opt->{separator} ? $opt->{separator} : ': ';
-	my $grand_total = $opt->{grand_total} ? 1 : 0;
-	my $no_padding  = $opt->{no_padding}  ? 1 : 0;
-	my $transpose   = $opt->{transpose}   ? 1 : 0;
+	my $indent     = defined $opt->{indent}    ? $opt->{indent}    : '    ';
+	my $prefix     = defined $opt->{prefix}    ? $opt->{prefix}    : ''  ;
+	my $separator  = defined $opt->{separator} ? $opt->{separator} : ': ';
+	my $with_root  = $opt->{with_root}  ? 1 : 0;
+	my $no_padding = $opt->{no_padding} ? 1 : 0;
+	my $transpose  = $opt->{transpose}  ? 1 : 0;
 	
 	if (!$callback) {
-		my $maxlen = $grand_total ? length($self->root->count) : length($self->root->max || '');
+		my $maxlen = $with_root ? length($self->root->count) : length($self->root->max || '');
 		$fh ||= \*STDOUT;
 		
 		$callback = sub {
 			my ($node, $children, $field, $subfield) = @_;
 			
-			if ($grand_total || $node->depth > 0) {
-				print $fh $indent x ($node->depth - ($grand_total ? 0 : 1));
+			if ($with_root || $node->depth > 0) {
+				print $fh $indent x ($node->depth - ($with_root ? 0 : 1));
 				print $fh $prefix;
 				
 				my $value = $node->value;
@@ -735,7 +734,7 @@ for the first field.
 
 Returns the array ref to the list of fields (L<Data::Freq::Field>).
 
-The returned array is B<not> supposed to be modified.
+The returned array should B<not> be modified.
 
 =cut
 
