@@ -75,7 +75,8 @@ where the left column shows the number of occurrences of each date.
 
 The date/time value is automatically extracted from the log line,
 where the first field enclosed by a pair of brackets C<[...]>
-is parsed as a date/time text by the L<Date::Parse/str2time> function.
+is parsed as a date/time text by the C<Date::Parse::str2time()> function.
+(See L<Date::Parse>.)
 
 See also L<Data::Freq::Record/logsplit>.
 
@@ -315,7 +316,8 @@ The basic data types are C<'text'>, C<'number'>, and C<'date'>,
 which determine how each input data is normalized for the frequency counting,
 and how the results are sorted.
 
-The C<'date'> type can also be written as the format string for L<POSIX::strftime()> function.
+The C<'date'> type can also be written as the format string for C<POSIX::strftime()> function.
+(See L<POSIX>.)
 
     Data::Freq->new('%Y-%m');
     

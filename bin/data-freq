@@ -256,7 +256,7 @@ the first chunk is used as the input number.
 =item * --date
 
 The input is parsed as date/time and formatted
-based on the L<POSIX::strftime()> format.
+based on the C<POSIX::strftime()> format. (See L<POSIX>.)
 The default format is C<%Y-%m-%d> which looks like C<2001-02-03>.
 
 Unless C<--pos> option is explicitly given,
