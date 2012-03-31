@@ -50,7 +50,7 @@ For more advanced usage, C<Data::Freq> is capable of aggregating counting result
 at multiple levels.
 For example, lines of a log file can be grouped into I<months> first,
 and then under each of the months, they can be further grouped into individual I<days>,
-where all the frequency of both months and days is summed up.
+where all the frequency of both months and days is summed up consistently.
 
 =head2 Analyzing an Apache access log
 
@@ -158,7 +158,7 @@ E.g.
     ...
 
 In the field specifications, the value of C<pos> or C<key> can also be an array ref,
-where the multiple elements selected by the C<pos> or C<key> will be C<join()>'ed
+where the multiple elements selected by the C<pos> or C<key> will be C<join>'ed
 by a space (or the value of C<$">).
 
 This is useful when a log format contains a date that is not enclosed by a pair of
@@ -210,12 +210,12 @@ as the default output lines).
 =item * A hash ref of options to control output format
 
     $data->output({
-        with_root => 0     , # also prints total (root node)
-        transpose   => 0     , # prints values before counts
-        indent      => '    ', # repeats (depth - 1) times
-        separator   => ': '  , # separates the count and the value
-        prefix      => ''    , # prepended before the count
-        no_padding  => 0     , # disables padding for the count
+        with_root  => 0     , # also prints total (root node)
+        transpose  => 0     , # prints values before counts
+        indent     => '    ', # repeats (depth - 1) times
+        separator  => ': '  , # separates the count and the value
+        prefix     => ''    , # prepended before the count
+        no_padding => 0     , # disables padding for the count
     });
 
 =item * The format option can be specified together with a file handle.
