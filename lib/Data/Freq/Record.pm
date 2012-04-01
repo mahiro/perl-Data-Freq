@@ -10,11 +10,11 @@ Data::Freq::Record - Represents a record added to Data::Freq counting
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use base 'Exporter';
 use Carp qw(croak);

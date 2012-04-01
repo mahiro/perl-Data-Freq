@@ -10,11 +10,11 @@ Data::Freq::Field - Controls counting with Data::Freq at each level
 
 =head1 VERSION
 
-Version 0.01
+Version 0.02
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use Carp qw(croak);
 use Date::Parse qw(str2time);
