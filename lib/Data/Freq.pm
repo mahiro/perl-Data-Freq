@@ -43,6 +43,8 @@ C<Data::Freq> is an object-oriented module to collect data from log files
 or any kind of data sources, count frequency of particular patterns,
 and generate a counting report.
 
+See also the command-line tool L<data-freq>.
+
 The simplest usage is to count lines of a log files in terms of a particular category
 such as date, username, remote address, and so on.
 
@@ -394,9 +396,9 @@ a C<frequency tree> has been constructed internally.
 
 Suppose the C<Data::Freq> instance is initialized with the two fields as below:
 
-   var $field1 = Data::Freq::Field->new({type => 'month'});
-   var $field2 = Data::Freq::Field->new({type => 'text', pos => 2});
-   var $data = Data::Freq->new($field1, $field2);
+   my $field1 = Data::Freq::Field->new({type => 'month'});
+   my $field2 = Data::Freq::Field->new({type => 'text', pos => 2});
+   my $data = Data::Freq->new($field1, $field2);
    ...
 
 a result tree that looks like below will be constructed as each data record is added:
