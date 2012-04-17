@@ -10,11 +10,11 @@ Data::Freq::Node - Represents a node of the result tree constructed by Data::Fre
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use List::Util;
 

@@ -10,11 +10,11 @@ Data::Freq - Collects data, counts frequency, and makes up a multi-level countin
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 our $ROOT_VALUE = 'Total';
 
