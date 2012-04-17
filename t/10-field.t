@@ -26,22 +26,22 @@ subtest simple_type => sub {
 	is(Data::Freq::Field->new('number' )->type, 'number');
 	is(Data::Freq::Field->new('numbers')->type, 'number');
 	
-	is_deeply([map {Data::Freq::Field->new('date'   )->$_} qw(type strftime)], ['date', '%F'      ]);
-	is_deeply([map {Data::Freq::Field->new('dates'  )->$_} qw(type strftime)], ['date', '%F'      ]);
-	is_deeply([map {Data::Freq::Field->new('time'   )->$_} qw(type strftime)], ['date', '%F %T'   ]);
+	is_deeply([map {Data::Freq::Field->new('date'   )->$_} qw(type strftime)], ['date', '%Y-%m-%d'         ]);
+	is_deeply([map {Data::Freq::Field->new('dates'  )->$_} qw(type strftime)], ['date', '%Y-%m-%d'         ]);
+	is_deeply([map {Data::Freq::Field->new('time'   )->$_} qw(type strftime)], ['date', '%Y-%m-%d %H:%M:%S']);
 	
-	is_deeply([map {Data::Freq::Field->new('year'   )->$_} qw(type strftime)], ['date', '%Y'      ]);
-	is_deeply([map {Data::Freq::Field->new('years'  )->$_} qw(type strftime)], ['date', '%Y'      ]);
-	is_deeply([map {Data::Freq::Field->new('month'  )->$_} qw(type strftime)], ['date', '%Y-%m'   ]);
-	is_deeply([map {Data::Freq::Field->new('months' )->$_} qw(type strftime)], ['date', '%Y-%m'   ]);
-	is_deeply([map {Data::Freq::Field->new('day'    )->$_} qw(type strftime)], ['date', '%F'      ]);
-	is_deeply([map {Data::Freq::Field->new('days'   )->$_} qw(type strftime)], ['date', '%F'      ]);
-	is_deeply([map {Data::Freq::Field->new('hour'   )->$_} qw(type strftime)], ['date', '%F %H'   ]);
-	is_deeply([map {Data::Freq::Field->new('hours'  )->$_} qw(type strftime)], ['date', '%F %H'   ]);
-	is_deeply([map {Data::Freq::Field->new('minute' )->$_} qw(type strftime)], ['date', '%F %H:%M']);
-	is_deeply([map {Data::Freq::Field->new('minutes')->$_} qw(type strftime)], ['date', '%F %H:%M']);
-	is_deeply([map {Data::Freq::Field->new('second' )->$_} qw(type strftime)], ['date', '%F %T'   ]);
-	is_deeply([map {Data::Freq::Field->new('seconds')->$_} qw(type strftime)], ['date', '%F %T'   ]);
+	is_deeply([map {Data::Freq::Field->new('year'   )->$_} qw(type strftime)], ['date', '%Y'               ]);
+	is_deeply([map {Data::Freq::Field->new('years'  )->$_} qw(type strftime)], ['date', '%Y'               ]);
+	is_deeply([map {Data::Freq::Field->new('month'  )->$_} qw(type strftime)], ['date', '%Y-%m'            ]);
+	is_deeply([map {Data::Freq::Field->new('months' )->$_} qw(type strftime)], ['date', '%Y-%m'            ]);
+	is_deeply([map {Data::Freq::Field->new('day'    )->$_} qw(type strftime)], ['date', '%Y-%m-%d'         ]);
+	is_deeply([map {Data::Freq::Field->new('days'   )->$_} qw(type strftime)], ['date', '%Y-%m-%d'         ]);
+	is_deeply([map {Data::Freq::Field->new('hour'   )->$_} qw(type strftime)], ['date', '%Y-%m-%d %H'      ]);
+	is_deeply([map {Data::Freq::Field->new('hours'  )->$_} qw(type strftime)], ['date', '%Y-%m-%d %H'      ]);
+	is_deeply([map {Data::Freq::Field->new('minute' )->$_} qw(type strftime)], ['date', '%Y-%m-%d %H:%M'   ]);
+	is_deeply([map {Data::Freq::Field->new('minutes')->$_} qw(type strftime)], ['date', '%Y-%m-%d %H:%M'   ]);
+	is_deeply([map {Data::Freq::Field->new('second' )->$_} qw(type strftime)], ['date', '%Y-%m-%d %H:%M:%S']);
+	is_deeply([map {Data::Freq::Field->new('seconds')->$_} qw(type strftime)], ['date', '%Y-%m-%d %H:%M:%S']);
 };
 
 subtest simple_aggregate => sub {
@@ -161,7 +161,7 @@ subtest default_type => sub {
 	plan tests => 4;
 	
 	is(Data::Freq::Field->new()->type, 'text');
-	is_deeply([map {Data::Freq::Field->new('date')->$_} qw(type strftime)], ['date', '%F']);
+	is_deeply([map {Data::Freq::Field->new('date')->$_} qw(type strftime)], ['date', '%Y-%m-%d']);
 	is_deeply([map {Data::Freq::Field->new('%H')->$_} qw(type strftime)], ['date', '%H']);
 	is_deeply([map {Data::Freq::Field->new(['count', 'asc', [1..3]])->$_} qw(type sort order pos)], ['text', 'count', 'asc', [1, 2, 3]]);
 };
