@@ -296,19 +296,19 @@ sub _extract_type {
 		return $self;
 	} elsif ($input =~ /^(date|day)s?$/i) {
 		$self->{type} = 'date';
-		$self->{strftime} = '%F';
+		$self->{strftime} = '%Y-%m-%d';
 		return $self;
 	} elsif ($input =~ /^hours?$/i) {
 		$self->{type} = 'date';
-		$self->{strftime} = '%F %H';
+		$self->{strftime} = '%Y-%m-%d %H';
 		return $self;
 	} elsif ($input =~ /^minutes?$/i) {
 		$self->{type} = 'date';
-		$self->{strftime} = '%F %H:%M';
+		$self->{strftime} = '%Y-%m-%d %H:%M';
 		return $self;
 	} elsif ($input =~ /^(seconds?|time)?$/i) {
 		$self->{type} = 'date';
-		$self->{strftime} = '%F %T';
+		$self->{strftime} = '%Y-%m-%d %H:%M:%S';
 		return $self;
 	}
 	
