@@ -6,10 +6,13 @@ use warnings;
 use Test::More tests => 5;
 
 use Data::Freq::Record qw(logsplit);
-use POSIX qw(strftime);
+use POSIX qw(strftime tzset);
 
 local $ENV{TZ} = 'GMT'; # make test results independent of localtime
+tzset;
+
 local $" = ' '; # list separator (for "@array" notation in $record->date)
+
 
 subtest logsplit => sub {
 	plan tests => 6;
