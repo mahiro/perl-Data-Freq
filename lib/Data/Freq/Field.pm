@@ -21,6 +21,9 @@ use Date::Parse qw(str2time);
 use Scalar::Util qw(looks_like_number);
 require POSIX;
 
+my @opt_keys = qw(gmt);
+my %is_opt_key = map {$_ => 1} @opt_keys;
+
 =head1 METHODS
 
 =head2 new
@@ -49,12 +52,15 @@ sub new {
 	if (!ref $input) {
 		$self->_extract_any($input) or croak "invalid argument: $input";
 	} elsif (ref $input eq 'HASH') {
-		for my $target (qw(type aggregate sort order pos key)) {
+		for my $target (qw(type aggregate sort order pos key opts)) {
 			if (defined $input->{$target}) {
 				my $method = "_extract_$target";
 				
-				$self->$method($input->{$target})
-						or croak "invalid $target: $input->{$target}";
+				unless ($self->$method($input->{$target})) {
+					if ($target ne 'opts') {
+						croak "invalid $target: $input->{$target}";
+					}
+				}
 			}
 		}
 		
@@ -73,6 +79,8 @@ sub new {
 				}
 			}
 		}
+		
+		$self->_extract_opts($input);
 	} elsif (ref $input eq 'ARRAY') {
 		for my $item (@$input) {
 			$self->_extract_any($item) or croak "invalid argument: $item";
@@ -141,7 +149,9 @@ sub evaluate_record {
 		if ($self->type eq 'date') {
 			$result = looks_like_number($result) ? $result : str2time($result);
 			last TRY unless defined $result;
-			$result = POSIX::strftime($self->strftime, localtime $result);
+			
+			$result = POSIX::strftime($self->strftime,
+				($self->gmt ? gmtime $result : localtime $result));
 		}
 	}
 	
@@ -248,23 +258,28 @@ Retrieves the C<strftime> parameter (L<POSIX::strftime()|POSIX/strftime>).
 
 Retrieves the C<convert> parameter.
 
+=head2 gmt
+
+Retrieves whether the C<gmt> option is turned on.
+
 =cut
 
-sub type      {$_[0]{type    }}
+sub type      {$_[0]{type     }}
 sub aggregate {$_[0]{aggregate}}
-sub sort      {$_[0]{sort    }}
-sub order     {$_[0]{order   }}
-sub pos       {$_[0]{pos     }}
-sub key       {$_[0]{key     }}
-sub limit     {$_[0]{limit   }}
-sub offset    {$_[0]{offset  }}
-sub strftime  {$_[0]{strftime}}
-sub convert   {$_[0]{convert }}
+sub sort      {$_[0]{sort     }}
+sub order     {$_[0]{order    }}
+sub pos       {$_[0]{pos      }}
+sub key       {$_[0]{key      }}
+sub limit     {$_[0]{limit    }}
+sub offset    {$_[0]{offset   }}
+sub strftime  {$_[0]{strftime }}
+sub convert   {$_[0]{convert  }}
+sub gmt       {$_[0]{gmt      }}
 
 sub _extract_any {
 	my ($self, $input) = @_;
 	
-	for my $target (qw(pos type aggregate sort order)) {
+	for my $target (qw(pos type aggregate sort order opts)) {
 		my $method = "_extract_$target";
 		return $self if $self->$method($input);
 	}
@@ -399,6 +414,42 @@ sub _extract_key {
 	$self->{key} ||= [];
 	push @{$self->{key}}, (ref($input) eq 'ARRAY' ? @$input : ($input));
 	return $self;
+}
+
+sub _extract_opts {
+	my ($self, $input) = @_;
+	return undef if !defined $input;
+	
+	my $any = 0;
+	
+	if (!ref $input) {
+		$input = lc $input;
+		
+		if ($is_opt_key{$input}) {
+			$self->{$input} = 1;
+			$any = 1;
+		}
+	} elsif (ref $input eq 'ARRAY') {
+		for my $val (@$input) {
+			$val = lc $val;
+			
+			if ($is_opt_key{$val}) {
+				$self->{$val} = 1;
+				$any = 1;
+			}
+		}
+	} elsif (ref $input eq 'HASH') {
+		for my $val (keys %$input) {
+			my $lc_val = lc $val;
+			
+			if ($is_opt_key{$lc_val} && $input->{$val}) {
+				$self->{$lc_val} = 1;
+				$any = 1;
+			}
+		}
+	}
+	
+	return $any ? $self : undef;
 }
 
 =head1 AUTHOR

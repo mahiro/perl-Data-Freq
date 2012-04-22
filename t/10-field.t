@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 use Data::Freq::Field;
 
@@ -91,6 +91,22 @@ subtest simple_pos => sub {
 	is_deeply(Data::Freq::Field->new( -1)->pos, [-1]);
 	is_deeply(Data::Freq::Field->new( -2)->pos, [-2]);
 	is_deeply(Data::Freq::Field->new(-10)->pos, [-10]);
+};
+
+subtest simple_opts => sub {
+	plan tests => 11;
+	
+	is(Data::Freq::Field->new()->gmt, undef);
+	is(Data::Freq::Field->new('gmt')->gmt, 1);
+	is(Data::Freq::Field->new(['gmt'])->gmt, 1);
+	is(Data::Freq::Field->new({'gmt' => 0})->gmt, undef);
+	is(Data::Freq::Field->new({'gmt' => 1})->gmt, 1);
+	is(Data::Freq::Field->new({opts => 'gmt'})->gmt, 1);
+	is(Data::Freq::Field->new({opts => []})->gmt, undef);
+	is(Data::Freq::Field->new({opts => ['gmt']})->gmt, 1);
+	is(Data::Freq::Field->new({opts => {}})->gmt, undef);
+	is(Data::Freq::Field->new({opts => {'gmt' => 0}})->gmt, undef);
+	is(Data::Freq::Field->new({opts => {'gmt' => 1}})->gmt, 1);
 };
 
 subtest hash_1 => sub {
