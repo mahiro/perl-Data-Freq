@@ -6,13 +6,7 @@ use warnings;
 use Test::More tests => 5;
 
 use Data::Freq::Record qw(logsplit);
-use POSIX qw(strftime tzset);
-
-local $ENV{TZ} = 'GMT'; # make test results independent of localtime
-tzset;
-
-local $" = ' '; # list separator (for "@array" notation in $record->date)
-
+use POSIX qw(strftime);
 
 subtest logsplit => sub {
 	plan tests => 6;
@@ -74,9 +68,9 @@ subtest date => sub {
 	
 	# Custom
 	$record = Data::Freq::Record->new(qq([2012-01-01 01:02:03] DEBUG - Test debug message\n));
-	is $record->date, 1325379723;
+	is(strftime('%Y-%m-%d %H:%M:%S', localtime $record->date), '2012-01-01 01:02:03'); # 1325379723 if tz is gmt;
 	
 	# Log4J (or Log4perl etc) with %d{dd MMM yyyy HH:mm:ss,SSS}
 	$record = Data::Freq::Record->new(qq(01 Jan 2012 01:02:03,456 INFO  [main] foo.bar.Baz:123 - test test test\n));
-	is $record->date([0..3]), 1325379723.456;
+	is(strftime('%Y-%m-%d %H:%M:%S', localtime int($record->date([0..3]))), '2012-01-01 01:02:03'); # 1325379723.456 if tz is gmt
 };
