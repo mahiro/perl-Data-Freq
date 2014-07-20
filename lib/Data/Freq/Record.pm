@@ -8,13 +8,7 @@ package Data::Freq::Record;
 
 Data::Freq::Record - Represents a record added to Data::Freq counting
 
-=head1 VERSION
-
-Version 0.04
-
 =cut
-
-our $VERSION = '0.04';
 
 use base 'Exporter';
 use Carp qw(croak);

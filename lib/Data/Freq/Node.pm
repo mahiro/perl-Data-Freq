@@ -8,13 +8,7 @@ package Data::Freq::Node;
 
 Data::Freq::Node - Represents a node of the result tree constructed by Data::Freq
 
-=head1 VERSION
-
-Version 0.04
-
 =cut
-
-our $VERSION = '0.04';
 
 use List::Util;
 

@@ -1,5 +1,8 @@
 Revision history for Data-Freq
 
+0.05    2014-07-20
+        Cleanup code/docs
+
 0.04    2012-04-22
         Make tests independent of timezone
 
