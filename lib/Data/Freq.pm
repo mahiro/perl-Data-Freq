@@ -765,7 +765,11 @@ You can also look for information at:
 
 =over 4
 
-=item * RT: CPAN's request tracker (report bugs here)
+=item * GitHub repository (report bugs here)
+
+L<https://github.com/mahiro/perl-Data-Freq>
+
+=item * RT: CPAN's request tracker (report bugs here, alternatively)
 
 L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Data-Freq>
 
