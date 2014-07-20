@@ -139,7 +139,7 @@ For example, a CSV file can be analyzed as below:
     open(my $csv, 'source.csv');
     
     while (<$csv>) {
-    	$data->add([split /,/]);
+        $data->add([split /,/]);
     }
 
 Note: the L<add()|/add> method accepts an array ref,
@@ -475,19 +475,19 @@ If no fields are given to the L<new()|/new> method, one field of the C<text> typ
 =cut
 
 sub new {
-	my $class = shift;
-	
-	my $fields = eval {[map {
-		blessed($_) && $_->isa('Data::Freq::Field') ?
-				$_ : Data::Freq::Field->new($_)
-	} (@_ ? (@_) : ('text'))]};
-	
-	croak $@ if $@;
-	
-	return bless {
-		root   => Data::Freq::Node->new($ROOT_VALUE),
-		fields => $fields,
-	}, $class;
+    my $class = shift;
+    
+    my $fields = eval {[map {
+        blessed($_) && $_->isa('Data::Freq::Field') ?
+                $_ : Data::Freq::Field->new($_)
+    } (@_ ? (@_) : ('text'))]};
+    
+    croak $@ if $@;
+    
+    return bless {
+        root   => Data::Freq::Node->new($ROOT_VALUE),
+        fields => $fields,
+    }, $class;
 }
 
 =head2 add
@@ -510,22 +510,22 @@ See L<Data::Freq::Field/evaluate_record>.
 =cut
 
 sub add {
-	my $self = shift;
-	
-	for my $input (@_) {
-		my $record = Data::Freq::Record->new($input);
-		
-		my $node = $self->root;
-		$node->{count}++;
-		
-		for my $field (@{$self->fields}) {
-			my $value = $field->evaluate_record($record);
-			last unless defined $value;
-			$node = $node->add_subnode($value);
-		}
-	}
-	
-	return $self;
+    my $self = shift;
+    
+    for my $input (@_) {
+        my $record = Data::Freq::Record->new($input);
+        
+        my $node = $self->root;
+        $node->{count}++;
+        
+        for my $field (@{$self->fields}) {
+            my $value = $field->evaluate_record($record);
+            last unless defined $value;
+            $node = $node->add_subnode($value);
+        }
+    }
+    
+    return $self;
 }
 
 =head2 output
@@ -585,74 +585,74 @@ Note: C<< $node->children >> is a hash ref (unsorted) of a raw counting data.
 =cut
 
 sub output {
-	my $self = shift;
-	my ($fh, $callback, $opt);
-	
-	for (@_) {
-		if (openhandle($_)) {
-			$fh = $_;
-		} elsif (ref $_ eq 'HASH') {
-			$opt = $_;
-		} else {
-			$callback = $_;
-		}
-	}
-	
-	$opt ||= {};
-	
-	my $indent     = defined $opt->{indent}    ? $opt->{indent}    : '    ';
-	my $prefix     = defined $opt->{prefix}    ? $opt->{prefix}    : ''  ;
-	my $separator  = defined $opt->{separator} ? $opt->{separator} : ': ';
-	my $with_root  = $opt->{with_root}  ? 1 : 0;
-	my $no_padding = $opt->{no_padding} ? 1 : 0;
-	my $transpose  = $opt->{transpose}  ? 1 : 0;
-	
-	if (!$callback) {
-		my $maxlen = $with_root ? length($self->root->count) : length($self->root->max || '');
-		$fh ||= \*STDOUT;
-		
-		$callback = sub {
-			my ($node, $children, $field, $subfield) = @_;
-			
-			if ($with_root || $node->depth > 0) {
-				print $fh $indent x ($node->depth - ($with_root ? 0 : 1));
-				print $fh $prefix;
-				
-				my $value = $node->value;
-				my $count;
-				
-				if ($field and my $aggregate = $field->aggregate) {
-					$count = $node->$aggregate;
-				} else {
-					$count = $node->count;
-				}
-				
-				if ($transpose) {
-					print $fh $value;
-				} elsif ($no_padding) {
-					print $fh $count;
-				} else {
-					printf $fh '%'.$maxlen.'d', $count;
-				}
-				
-				print $fh $separator;
-				
-				if ($transpose) {
-					print $fh $count;
-				} else {
-					print $fh $value;
-				}
-				
-				print $fh "\n";
-			}
-		};
-	}
-	
-	$self->traverse(sub {
-		my ($node, $children, $recurse, $field) = @_;
-		$callback->($node, $children, $field);
-		$recurse->($_) foreach @$children;
-	});
+    my $self = shift;
+    my ($fh, $callback, $opt);
+    
+    for (@_) {
+        if (openhandle($_)) {
+            $fh = $_;
+        } elsif (ref $_ eq 'HASH') {
+            $opt = $_;
+        } else {
+            $callback = $_;
+        }
+    }
+    
+    $opt ||= {};
+    
+    my $indent     = defined $opt->{indent}    ? $opt->{indent}    : '    ';
+    my $prefix     = defined $opt->{prefix}    ? $opt->{prefix}    : ''  ;
+    my $separator  = defined $opt->{separator} ? $opt->{separator} : ': ';
+    my $with_root  = $opt->{with_root}  ? 1 : 0;
+    my $no_padding = $opt->{no_padding} ? 1 : 0;
+    my $transpose  = $opt->{transpose}  ? 1 : 0;
+    
+    if (!$callback) {
+        my $maxlen = $with_root ? length($self->root->count) : length($self->root->max || '');
+        $fh ||= \*STDOUT;
+        
+        $callback = sub {
+            my ($node, $children, $field, $subfield) = @_;
+            
+            if ($with_root || $node->depth > 0) {
+                print $fh $indent x ($node->depth - ($with_root ? 0 : 1));
+                print $fh $prefix;
+                
+                my $value = $node->value;
+                my $count;
+                
+                if ($field and my $aggregate = $field->aggregate) {
+                    $count = $node->$aggregate;
+                } else {
+                    $count = $node->count;
+                }
+                
+                if ($transpose) {
+                    print $fh $value;
+                } elsif ($no_padding) {
+                    print $fh $count;
+                } else {
+                    printf $fh '%'.$maxlen.'d', $count;
+                }
+                
+                print $fh $separator;
+                
+                if ($transpose) {
+                    print $fh $count;
+                } else {
+                    print $fh $value;
+                }
+                
+                print $fh "\n";
+            }
+        };
+    }
+    
+    $self->traverse(sub {
+        my ($node, $children, $recurse, $field) = @_;
+        $callback->($node, $children, $field);
+        $recurse->($_) foreach @$children;
+    });
 }
 
 =head2 traverse
@@ -667,7 +667,7 @@ Usage:
         # $children is a sorted list of child nodes,
         # based on the field specification
         for my $child (@$children) {
-        	$recurse->($child); # invoke recursion
+            $recurse->($child); # invoke recursion
         }
         
         # Do something with $node after its child nodes
@@ -703,27 +703,27 @@ B<no> recursion will be invoked automatically.
 =cut
 
 sub traverse {
-	my $self = shift;
-	my $callback = shift;
-	
-	my $fields = $self->fields;
-	my $recurse; # separate declaration for closure access
-	
-	$recurse = sub {
-		my $node = shift;
-		my $children = [];
-		my $field = $fields->[$node->depth];
-		my $subfield = $fields->[$node->depth + 1];
-		
-		if ($field) {
-			$children = [values %{$node->children}];
-			$children = $field->select_nodes($children, $subfield);
-		}
-		
-		$callback->($node, $children, $recurse, $field, $subfield);
-	};
-	
-	$recurse->($self->root);
+    my $self = shift;
+    my $callback = shift;
+    
+    my $fields = $self->fields;
+    my $recurse; # separate declaration for closure access
+    
+    $recurse = sub {
+        my $node = shift;
+        my $children = [];
+        my $field = $fields->[$node->depth];
+        my $subfield = $fields->[$node->depth + 1];
+        
+        if ($field) {
+            $children = [values %{$node->children}];
+            $children = $field->select_nodes($children, $subfield);
+        }
+        
+        $callback->($node, $children, $recurse, $field, $subfield);
+    };
+    
+    $recurse->($self->root);
 }
 
 =head2 root

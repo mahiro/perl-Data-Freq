@@ -31,35 +31,35 @@ Constructs a node object in the L<Data::Freq/frequency tree>.
 =cut
 
 sub new {
-	my ($class, $value, $parent) = @_;
-	
-	if (ref $class) {
-		$parent ||= $class;
-		$class = ref $class;
-	}
-	
-	my $depth = 0;
-	
-	if ($parent) {
-		$depth = $parent->depth + 1;
-		$parent->{unique}++;
-	}
-	
-	return bless {
-		# For this node's own
-		count    => 0,
-		value    => $value,
-		
-		# Parent & children
-		parent   => $parent,
-		children => {},
-		first    => undef,
-		last     => undef,
-		unique   => 0,
-		
-		# Depth from root
-		depth    => $depth,
-	}, $class;
+    my ($class, $value, $parent) = @_;
+    
+    if (ref $class) {
+        $parent ||= $class;
+        $class = ref $class;
+    }
+    
+    my $depth = 0;
+    
+    if ($parent) {
+        $depth = $parent->depth + 1;
+        $parent->{unique}++;
+    }
+    
+    return bless {
+        # For this node's own
+        count    => 0,
+        value    => $value,
+        
+        # Parent & children
+        parent   => $parent,
+        children => {},
+        first    => undef,
+        last     => undef,
+        unique   => 0,
+        
+        # Depth from root
+        depth    => $depth,
+    }, $class;
 }
 
 =head2 add_subnode
@@ -77,15 +77,15 @@ incremented by 1.
 =cut
 
 sub add_subnode {
-	my ($self, $value) = @_;
-	my $child = ($self->children->{$value} ||= $self->new($value, $self));
-	
-	$child->{first} = $self->count if $child->count == 0;
-	$child->{last} = $self->count;
-	
-	$child->{count}++;
-	
-	return $child;
+    my ($self, $value) = @_;
+    my $child = ($self->children->{$value} ||= $self->new($value, $self));
+    
+    $child->{first} = $self->count if $child->count == 0;
+    $child->{last} = $self->count;
+    
+    $child->{count}++;
+    
+    return $child;
 }
 
 =head2 count
